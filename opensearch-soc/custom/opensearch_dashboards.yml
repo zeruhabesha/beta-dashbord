@@ -1,0 +1,9 @@
+opensearch.hosts: ["https://opensearch:9200"]
+opensearch.ssl.verificationMode: none
+
+uiSettings:
+  overrides:
+    theme:darkMode: false
+
+server.customResponseHeaders:
+  Content-Security-Policy: "style-src 'self' 'unsafe-inline';"

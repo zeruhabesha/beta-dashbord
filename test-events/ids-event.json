@@ -1,0 +1,17 @@
+{
+    "alert_id": "test-002",
+    "timestamp": "2026-01-12T08:01:00.000Z",
+    "attack_type": "SQL Injection",
+    "signature_id": 1234567,
+    "signature_name": "ET EXPLOIT SQL Injection Attempt",
+    "source_ip": "203.0.113.45",
+    "source_port": 54321,
+    "destination_ip": "10.0.0.100",
+    "destination_port": 443,
+    "protocol": "HTTPS",
+    "severity": "critical",
+    "action": "blocked",
+    "payload": "SELECT * FROM users WHERE id=1 OR 1=1",
+    "bytes_in": 2048,
+    "bytes_out": 512
+}

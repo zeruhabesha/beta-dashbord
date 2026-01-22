@@ -1,0 +1,86 @@
+# ========================================
+# BETA - OpenSearch Dashboards Configuration
+# ========================================
+
+# Server Configuration
+server.host: "0.0.0.0"
+server.port: 5601
+server.name: "beta-opensearch-dashboards"
+
+# OpenSearch Connection
+opensearch.hosts: ["https://localhost:9200"]
+opensearch.username: "admin"
+opensearch.password: "admin"
+opensearch.ssl.verificationMode: none
+
+# ========================================
+# BETA BRANDING
+# ========================================
+opensearchDashboards.branding:
+  applicationTitle: "BETA - OpenSearch Security"
+  # Uncomment and configure after adding custom logo files
+  # logo:
+  #   defaultUrl: "/ui/beta-logo.svg"
+  # mark:
+  #   defaultUrl: "/ui/beta-mark.svg"
+  # faviconUrl: "/ui/beta-favicon.ico"
+
+# ========================================
+# UI SETTINGS - DARK THEME
+# ========================================
+uiSettings.overrides:
+  # "theme:darkMode": true  <-- Removed to allow toggling
+  "theme:version": "v8"
+  "dateFormat": "YYYY-MM-DD HH:mm:ss"
+  "dateFormat:tz": "UTC"
+  "defaultIndex": "unified-index-pattern"
+
+# ========================================
+# MULTI-TENANCY CONFIGURATION
+# ========================================
+opensearch_security.multitenancy.enabled: true
+opensearch_security.multitenancy.tenants.preferred: ["Global", "Private"]
+opensearch_security.multitenancy.tenants.enable_global: true
+opensearch_security.multitenancy.tenants.enable_private: true
+
+# ========================================
+# SECURITY CONFIGURATION
+# ========================================
+# ========================================
+# SECURITY CONFIGURATION
+# ========================================
+opensearch_security.auth.type: "basicauth"
+opensearch_security.cookie.secure: false
+opensearch_security.cookie.password: "min32characterpasswordforencryption"
+# Relax CSP for Iframe embedding
+csp.strict: false
+csp.warnLegacyBrowsers: false
+
+
+# ========================================
+# PERFORMANCE OPTIMIZATION
+# ========================================
+# Increase timeout for large queries
+opensearch.requestTimeout: 60000
+
+# Enable query caching
+data.search.aggs.shardDelay.enabled: true
+
+# ========================================
+# LOGGING
+# ========================================
+logging.dest: stdout
+logging.silent: false
+logging.quiet: false
+logging.verbose: false
+
+# ========================================
+# ADDITIONAL SETTINGS
+# ========================================
+# Disable telemetry
+telemetry.enabled: false
+telemetry.optIn: false
+
+# Enable sample data
+# (useful for testing)
+# home.disableWelcomeScreen: false

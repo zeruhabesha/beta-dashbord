@@ -1,0 +1,18 @@
+{
+    "event_id": "test-001",
+    "timestamp": "2026-01-12T08:00:00.000Z",
+    "event_type": "login_failure",
+    "severity": "high",
+    "source_ip": "192.168.1.100",
+    "destination_ip": "10.0.0.50",
+    "user": "admin",
+    "host": "web-server-01",
+    "description": "Failed login attempt detected",
+    "rule_id": "SIEM-1001",
+    "rule_name": "Multiple Failed Login Attempts",
+    "category": "authentication",
+    "tags": [
+        "suspicious",
+        "authentication"
+    ]
+}

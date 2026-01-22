@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Kafka UI - BETA</title>
+    <link rel="stylesheet" href="/custom-theme.css">
+</head>
+
+<body>
+    <!-- This file injects custom CSS into Kafka UI -->
+    <script>
+        // Inject custom CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '/custom-theme.css';
+        document.head.appendChild(link);
+
+        // Add BETA branding to title
+        document.title = 'Kafka UI - BETA';
+
+        // Update favicon if needed
+        const favicon = document.querySelector('link[rel="icon"]');
+        if (favicon) {
+            // Keep existing favicon
+        }
+    </script>
+</body>
+
+</html>

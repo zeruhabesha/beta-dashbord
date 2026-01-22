@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" fill="none">
+  <!-- "beta" text in blue -->
+  <text x="50" y="280" font-family="Arial, sans-serif" font-size="200" font-weight="bold" fill="#2B5F9E">
+    <tspan>b</tspan>
+  </text>
+  
+  <!-- Fingerprint circle in the 'b' -->
+  <circle cx="125" cy="185" r="35" fill="#E8E8E8" stroke="#666" stroke-width="2"/>
+  <g transform="translate(125, 185)">
+    <!-- Fingerprint pattern -->
+    <path d="M -15,-10 Q -10,-15 0,-15 Q 10,-15 15,-10" stroke="#666" stroke-width="1.5" fill="none"/>
+    <path d="M -18,-5 Q -12,-12 0,-12 Q 12,-12 18,-5" stroke="#666" stroke-width="1.5" fill="none"/>
+    <path d="M -20,0 Q -15,-8 0,-8 Q 15,-8 20,0" stroke="#666" stroke-width="1.5" fill="none"/>
+    <path d="M -18,5 Q -12,0 0,0 Q 12,0 18,5" stroke="#666" stroke-width="1.5" fill="none"/>
+    <path d="M -15,10 Q -10,5 0,5 Q 10,5 15,10" stroke="#666" stroke-width="1.5" fill="none"/>
+  </g>
+  
+  <text x="200" y="280" font-family="Arial, sans-serif" font-size="200" font-weight="bold" fill="#2B5F9E">
+    <tspan>eta</tspan>
+  </text>
+  
+  <!-- "TECH HUB" text in black -->
+  <text x="310" y="360" font-family="Arial, sans-serif" font-size="60" font-weight="normal" fill="#000000" letter-spacing="8">
+    TECH HUB
+  </text>
+</svg>

@@ -1,0 +1,66 @@
+/* =========================
+   BETA SOC BRAND THEME
+   ========================= */
+
+/* Top header */
+.euiHeader {
+  background-color: #0B0F14 !important;
+  border-bottom: 1px solid #1f2937;
+}
+
+/* Sidebar */
+.euiNavDrawer {
+  background-color: #0B0F14 !important;
+}
+
+.euiNavDrawerItem {
+  color: #E5E7EB !important;
+}
+
+.euiNavDrawerItem.euiNavDrawerItem-isSelected {
+  background-color: #0A84FF !important;
+  color: #ffffff !important;
+}
+
+/* Page background */
+.euiPage {
+  background-color: #F5F7FA !important;
+}
+
+/* Dashboard panels */
+.embPanel {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background-color: #ffffff;
+}
+
+/* Buttons */
+.euiButton--primary {
+  background-color: #0A84FF !important;
+  border-color: #0A84FF !important;
+}
+
+/* Titles */
+.euiTitle {
+  color: #0B0F14 !important;
+  font-weight: 600;
+}
+
+/* Tables */
+.euiTableRow:nth-child(even) {
+  background-color: #F9FAFB;
+}
+
+/* Alert colors */
+.beta-alert-critical {
+  color: #E11D48;
+  font-weight: bold;
+}
+
+.beta-alert-warning {
+  color: #F59E0B;
+}
+
+.beta-alert-success {
+  color: #10B981;
+}

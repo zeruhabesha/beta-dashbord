@@ -1,0 +1,1024 @@
+/* ============================================
+   BETA-THEMED KAFKA UI CUSTOM STYLES
+   Color Scheme: Blue (#2196F3), White (#FFF), Black (#000)
+   ============================================ */
+
+:root {
+    --beta-primary: #2196F3 !important;
+    --beta-primary-dark: #1976D2 !important;
+    --beta-primary-light: #64B5F6 !important;
+    --beta-accent: #00BCD4 !important;
+    --beta-dark: #1a1a1a !important;
+    --beta-darker: #000000 !important;
+    --beta-white: #FFFFFF !important;
+    --beta-gray: #9E9E9E !important;
+    --beta-light-gray: #424242 !important;
+    --beta-bg: #121212 !important;
+}
+
+/* Force Dark Mode Base */
+body,
+html,
+#root,
+[class*="App"] {
+    background: var(--beta-bg) !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   HEADER & TOP NAVIGATION
+   ============================================ */
+
+/* Main Header - Blue Gradient */
+header,
+nav[class*="navbar"],
+[class*="Header"],
+[class*="TopBar"],
+div[class*="header"] {
+    background: linear-gradient(135deg, #1565C0 0%, var(--beta-primary) 50%, #1976D2 100%) !important;
+    color: var(--beta-white) !important;
+    border-bottom: 3px solid var(--beta-accent) !important;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3) !important;
+}
+
+/* Header Links and Text */
+header *,
+nav[class*="navbar"] *,
+[class*="Header"] * {
+    color: var(--beta-white) !important;
+}
+
+/* Logo/Brand Area */
+[class*="logo"],
+[class*="Logo"],
+[class*="brand"],
+[class*="Brand"],
+a[class*="navbar-brand"] {
+    color: var(--beta-white) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Add BETA Badge */
+[class*="logo"]::after,
+[class*="Logo"]::after,
+[class*="ClusterName"]::after {
+    content: "BETA" !important;
+    background: var(--beta-accent) !important;
+    color: var(--beta-white) !important;
+    padding: 3px 10px !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    margin-left: 10px !important;
+    letter-spacing: 1.5px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    display: inline-block !important;
+}
+
+/* ============================================
+   SIDEBAR NAVIGATION
+   ============================================ */
+
+/* Sidebar Container */
+aside,
+nav[class*="sidebar"],
+[class*="Sidebar"],
+[class*="SideBar"],
+div[class*="sidebar"] {
+    background: var(--beta-dark) !important;
+    border-right: 1px solid var(--beta-primary) !important;
+}
+
+/* Sidebar Links */
+aside a,
+nav[class*="sidebar"] a,
+[class*="Sidebar"] a,
+[class*="NavLink"] {
+    color: var(--beta-gray) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border-left: 3px solid transparent !important;
+}
+
+/* Sidebar Link Hover */
+aside a:hover,
+nav[class*="sidebar"] a:hover,
+[class*="Sidebar"] a:hover,
+[class*="NavLink"]:hover {
+    background: rgba(33, 150, 243, 0.15) !important;
+    color: var(--beta-primary-light) !important;
+    border-left-color: var(--beta-primary) !important;
+    padding-left: 20px !important;
+}
+
+/* Active Sidebar Link */
+aside a[class*="active"],
+nav[class*="sidebar"] a[class*="active"],
+[class*="Sidebar"] a[class*="active"],
+[class*="NavLink"][class*="active"],
+aside a[aria-current="page"],
+nav a[aria-current="page"] {
+    background: linear-gradient(90deg, rgba(33, 150, 243, 0.2) 0%, rgba(33, 150, 243, 0.05) 100%) !important;
+    color: var(--beta-primary-light) !important;
+    border-left: 4px solid var(--beta-primary) !important;
+    font-weight: 600 !important;
+}
+
+/* ============================================
+   MAIN CONTENT AREA
+   ============================================ */
+
+main,
+[class*="Content"],
+[class*="content"],
+[class*="Main"] {
+    background: var(--beta-bg) !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   CARDS & PANELS
+   ============================================ */
+
+[class*="card"],
+[class*="Card"],
+[class*="panel"],
+[class*="Panel"],
+[class*="Box"],
+div[class*="container"] {
+    background: var(--beta-dark) !important;
+    border: 1px solid var(--beta-light-gray) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+/* Primary Buttons */
+button,
+[class*="Button"],
+[class*="button"],
+[class*="btn"],
+input[type="submit"],
+input[type="button"],
+a[class*="button"] {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+button:hover,
+[class*="Button"]:hover,
+[class*="button"]:hover,
+[class*="btn"]:hover {
+    background: var(--beta-primary-dark) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(33, 150, 243, 0.5) !important;
+}
+
+button:active,
+[class*="Button"]:active {
+    transform: translateY(0) !important;
+}
+
+/* Secondary/Outline Buttons */
+button[class*="secondary"],
+button[class*="outline"],
+[class*="Button"][class*="secondary"],
+[class*="Button"][class*="outline"] {
+    background: transparent !important;
+    border: 2px solid var(--beta-primary) !important;
+    color: var(--beta-primary) !important;
+}
+
+button[class*="secondary"]:hover,
+button[class*="outline"]:hover {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+}
+
+/* Danger Buttons */
+button[class*="danger"],
+button[class*="delete"],
+[class*="Button"][class*="danger"] {
+    background: #F44336 !important;
+}
+
+button[class*="danger"]:hover {
+    background: #D32F2F !important;
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+
+table,
+[class*="Table"],
+[class*="table"] {
+    background: var(--beta-dark) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    border: 1px solid var(--beta-light-gray) !important;
+}
+
+/* Table Header */
+thead,
+table thead,
+[class*="TableHead"],
+th {
+    background: linear-gradient(135deg, var(--beta-primary-dark) 0%, var(--beta-primary) 100%) !important;
+    color: var(--beta-white) !important;
+}
+
+thead th,
+table thead th,
+[class*="TableHead"] th {
+    color: var(--beta-white) !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 12px !important;
+    letter-spacing: 1px !important;
+    padding: 16px !important;
+    border-bottom: 2px solid var(--beta-accent) !important;
+}
+
+/* Table Body */
+tbody,
+table tbody,
+td {
+    color: var(--beta-white) !important;
+    background: var(--beta-dark) !important;
+}
+
+tbody tr,
+table tbody tr {
+    border-bottom: 1px solid var(--beta-light-gray) !important;
+    transition: background 0.2s ease !important;
+}
+
+tbody tr:hover,
+table tbody tr:hover {
+    background: rgba(33, 150, 243, 0.1) !important;
+}
+
+tbody td,
+table tbody td {
+    padding: 14px 16px !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   BADGES & TAGS
+   ============================================ */
+
+[class*="badge"],
+[class*="Badge"],
+[class*="tag"],
+[class*="Tag"],
+[class*="chip"],
+[class*="Chip"],
+span[class*="label"] {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border-radius: 14px !important;
+    padding: 5px 14px !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Status Badges */
+[class*="success"],
+[class*="Success"] {
+    background: #4CAF50 !important;
+}
+
+[class*="warning"],
+[class*="Warning"] {
+    background: #FF9800 !important;
+}
+
+[class*="error"],
+[class*="Error"],
+[class*="danger"],
+[class*="Danger"] {
+    background: #F44336 !important;
+}
+
+[class*="info"],
+[class*="Info"] {
+    background: var(--beta-accent) !important;
+}
+
+/* ============================================
+   LINKS
+   ============================================ */
+
+a {
+    color: var(--beta-primary-light) !important;
+    text-decoration: none !important;
+    transition: color 0.3s ease !important;
+}
+
+a:hover {
+    color: var(--beta-accent) !important;
+    text-decoration: underline !important;
+}
+
+/* ============================================
+   FORM INPUTS
+   ============================================ */
+
+input,
+select,
+textarea,
+[class*="Input"],
+[class*="input"],
+[class*="Select"] {
+    background: var(--beta-dark) !important;
+    border: 2px solid var(--beta-light-gray) !important;
+    border-radius: 6px !important;
+    color: var(--beta-white) !important;
+    padding: 10px 14px !important;
+    transition: all 0.3s ease !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+[class*="Input"]:focus {
+    border-color: var(--beta-primary) !important;
+    box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2) !important;
+    outline: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--beta-gray) !important;
+}
+
+/* ============================================
+   TABS
+   ============================================ */
+
+[class*="tabs"],
+[class*="Tabs"],
+[class*="TabList"] {
+    border-bottom: 2px solid var(--beta-light-gray) !important;
+    background: var(--beta-dark) !important;
+}
+
+[class*="tab"],
+[class*="Tab"]:not([class*="Table"]) {
+    color: var(--beta-gray) !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    transition: all 0.3s ease !important;
+    background: transparent !important;
+}
+
+[class*="tab"]:hover,
+[class*="Tab"]:hover {
+    color: var(--beta-primary-light) !important;
+    background: rgba(33, 150, 243, 0.1) !important;
+}
+
+[class*="tab"][class*="active"],
+[class*="Tab"][class*="active"],
+[class*="tab"][aria-selected="true"],
+[class*="Tab"][aria-selected="true"] {
+    color: var(--beta-primary-light) !important;
+    border-bottom: 3px solid var(--beta-primary) !important;
+    background: rgba(33, 150, 243, 0.15) !important;
+}
+
+/* ============================================
+   MODALS & DIALOGS
+   ============================================ */
+
+[class*="modal"],
+[class*="Modal"],
+[class*="dialog"],
+[class*="Dialog"] {
+    background: var(--beta-dark) !important;
+    border: 1px solid var(--beta-primary) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6) !important;
+    color: var(--beta-white) !important;
+}
+
+[class*="modal"] [class*="header"],
+[class*="Modal"] [class*="Header"],
+[class*="dialog"] [class*="header"] {
+    background: linear-gradient(135deg, var(--beta-primary-dark) 0%, var(--beta-primary) 100%) !important;
+    color: var(--beta-white) !important;
+    border-radius: 12px 12px 0 0 !important;
+    border-bottom: 2px solid var(--beta-accent) !important;
+}
+
+/* Modal Overlay */
+[class*="overlay"],
+[class*="Overlay"],
+[class*="backdrop"],
+[class*="Backdrop"] {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+/* ============================================
+   DROPDOWNS
+   ============================================ */
+
+[class*="dropdown"],
+[class*="Dropdown"],
+[class*="menu"],
+[class*="Menu"]:not([class*="Sidebar"]) {
+    background: var(--beta-dark) !important;
+    border: 1px solid var(--beta-primary) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+[class*="dropdown"] [class*="item"],
+[class*="Dropdown"] [class*="Item"],
+[class*="menu"] [class*="item"],
+[class*="MenuItem"] {
+    color: var(--beta-white) !important;
+    padding: 10px 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+[class*="dropdown"] [class*="item"]:hover,
+[class*="MenuItem"]:hover {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   SCROLLBARS
+   ============================================ */
+
+*::-webkit-scrollbar {
+    width: 10px !important;
+    height: 10px !important;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--beta-dark) !important;
+    border-radius: 5px !important;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--beta-primary) !important;
+    border-radius: 5px !important;
+    border: 2px solid var(--beta-dark) !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--beta-primary-light) !important;
+}
+
+/* ============================================
+   CODE BLOCKS
+   ============================================ */
+
+code,
+pre,
+[class*="code"],
+[class*="Code"],
+[class*="pre"] {
+    background: #000000 !important;
+    color: var(--beta-accent) !important;
+    border: 1px solid var(--beta-primary) !important;
+    border-radius: 6px !important;
+    padding: 14px !important;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+}
+
+/* ============================================
+   ALERTS & NOTIFICATIONS
+   ============================================ */
+
+[class*="alert"],
+[class*="Alert"],
+[class*="notification"],
+[class*="Notification"] {
+    border-radius: 8px !important;
+    border-left: 4px solid var(--beta-primary) !important;
+    padding: 14px 18px !important;
+    background: rgba(33, 150, 243, 0.15) !important;
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   HEADINGS
+   ============================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--beta-white) !important;
+    font-weight: 700 !important;
+}
+
+h1 {
+    border-bottom: 3px solid var(--beta-primary) !important;
+    padding-bottom: 12px !important;
+}
+
+/* ============================================
+   LOADING INDICATORS
+   ============================================ */
+
+[class*="spinner"],
+[class*="Spinner"],
+[class*="loading"],
+[class*="Loading"],
+[class*="loader"] {
+    border-color: var(--beta-primary) var(--beta-primary) transparent transparent !important;
+}
+
+/* ============================================
+   TOOLTIPS
+   ============================================ */
+
+[class*="tooltip"],
+[class*="Tooltip"] {
+    background: var(--beta-darker) !important;
+    color: var(--beta-white) !important;
+    border: 1px solid var(--beta-primary) !important;
+    border-radius: 6px !important;
+    padding: 8px 14px !important;
+    font-size: 12px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ============================================
+   CUSTOM BETA WATERMARK
+   ============================================ */
+
+body::after {
+    content: "BETA" !important;
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    background: linear-gradient(135deg, var(--beta-primary) 0%, var(--beta-accent) 100%) !important;
+    color: var(--beta-white) !important;
+    padding: 8px 16px !important;
+    border-radius: 20px !important;
+    font-weight: 700 !important;
+    font-size: 12px !important;
+    letter-spacing: 2px !important;
+    box-shadow: 0 4px 16px rgba(33, 150, 243, 0.4) !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+}
+
+/* ============================================
+   TEXT COLORS
+   ============================================ */
+
+p,
+span,
+div,
+label {
+    color: var(--beta-white) !important;
+}
+
+/* ============================================
+   FOCUS STATES
+   ============================================ */
+
+*:focus {
+    outline: 2px solid var(--beta-primary) !important;
+    outline-offset: 2px !important;
+}
+
+button:focus,
+a:focus {
+    outline: 2px solid var(--beta-accent) !important;
+}
+
+/* Color Scheme: Blue (#2196F3, #1976D2), White (#FFFFFF), Black (#000000, #212121) */
+
+:root {
+    --beta-primary: #2196F3;
+    --beta-primary-dark: #1976D2;
+    --beta-primary-light: #64B5F6;
+    --beta-accent: #00BCD4;
+    --beta-dark: #212121;
+    --beta-darker: #000000;
+    --beta-white: #FFFFFF;
+    --beta-gray: #757575;
+    --beta-light-gray: #E0E0E0;
+    --beta-bg: #FAFAFA;
+}
+
+/* Main Layout - Dark Header */
+header,
+.navbar,
+[class*="Header"] {
+    background: linear-gradient(135deg, var(--beta-primary-dark) 0%, var(--beta-primary) 100%) !important;
+    color: var(--beta-white) !important;
+    border-bottom: 3px solid var(--beta-accent) !important;
+}
+
+/* Logo Area */
+.navbar-brand,
+[class*="Logo"],
+header a {
+    color: var(--beta-white) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Add BETA badge to logo */
+.navbar-brand::after {
+    content: "BETA";
+    background: var(--beta-accent);
+    color: var(--beta-white);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 8px;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar Navigation */
+aside,
+.sidebar,
+[class*="Sidebar"] {
+    background: var(--beta-dark) !important;
+    color: var(--beta-white) !important;
+}
+
+/* Sidebar Links */
+aside a,
+.sidebar a,
+[class*="Sidebar"] a {
+    color: var(--beta-light-gray) !important;
+    transition: all 0.3s ease;
+}
+
+aside a:hover,
+.sidebar a:hover,
+[class*="Sidebar"] a:hover {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    padding-left: 20px;
+}
+
+/* Active Sidebar Link */
+aside a.active,
+.sidebar a.active,
+[class*="Sidebar"] a.active,
+aside a[aria-current="page"],
+.sidebar a[aria-current="page"] {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border-left: 4px solid var(--beta-accent) !important;
+    font-weight: 600;
+}
+
+/* Main Content Area */
+main,
+.content,
+[class*="Content"] {
+    background: var(--beta-bg) !important;
+}
+
+/* Cards and Panels */
+.card,
+.panel,
+[class*="Card"],
+[class*="Panel"],
+.table-container {
+    background: var(--beta-white) !important;
+    border: 1px solid var(--beta-light-gray) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Buttons - Primary */
+button,
+.btn,
+[class*="Button"],
+input[type="submit"] {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+}
+
+button:hover,
+.btn:hover,
+[class*="Button"]:hover {
+    background: var(--beta-primary-dark) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4) !important;
+}
+
+/* Secondary Buttons */
+button.secondary,
+.btn-secondary,
+button[class*="secondary"] {
+    background: var(--beta-dark) !important;
+    color: var(--beta-white) !important;
+}
+
+button.secondary:hover,
+.btn-secondary:hover {
+    background: var(--beta-darker) !important;
+}
+
+/* Tables */
+table {
+    background: var(--beta-white) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+thead,
+table thead {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+}
+
+thead th,
+table thead th {
+    color: var(--beta-white) !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+tbody tr:hover,
+table tbody tr:hover {
+    background: rgba(33, 150, 243, 0.05) !important;
+}
+
+/* Badges and Tags */
+.badge,
+.tag,
+[class*="Badge"],
+[class*="Tag"] {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border-radius: 12px !important;
+    padding: 4px 12px !important;
+    font-weight: 600 !important;
+    font-size: 11px !important;
+}
+
+/* Success State */
+.badge.success,
+.tag.success,
+[class*="success"] {
+    background: #4CAF50 !important;
+}
+
+/* Warning State */
+.badge.warning,
+.tag.warning,
+[class*="warning"] {
+    background: #FF9800 !important;
+}
+
+/* Error State */
+.badge.error,
+.tag.error,
+[class*="error"],
+[class*="danger"] {
+    background: #F44336 !important;
+}
+
+/* Links */
+a {
+    color: var(--beta-primary) !important;
+    text-decoration: none !important;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--beta-primary-dark) !important;
+    text-decoration: underline !important;
+}
+
+/* Input Fields */
+input,
+select,
+textarea {
+    border: 2px solid var(--beta-light-gray) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    transition: all 0.3s ease !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--beta-primary) !important;
+    box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1) !important;
+    outline: none !important;
+}
+
+/* Tabs */
+.nav-tabs,
+[class*="Tabs"] {
+    border-bottom: 2px solid var(--beta-light-gray) !important;
+}
+
+.nav-tabs .nav-link,
+[class*="Tab"] {
+    color: var(--beta-gray) !important;
+    border: none !important;
+    font-weight: 600 !important;
+}
+
+.nav-tabs .nav-link.active,
+[class*="Tab"][class*="active"] {
+    color: var(--beta-primary) !important;
+    border-bottom: 3px solid var(--beta-primary) !important;
+    background: transparent !important;
+}
+
+/* Metrics and Stats Cards */
+[class*="Metric"],
+[class*="Stat"],
+.metric-card {
+    background: linear-gradient(135deg, var(--beta-white) 0%, var(--beta-bg) 100%) !important;
+    border-left: 4px solid var(--beta-primary) !important;
+    padding: 16px !important;
+    border-radius: 8px !important;
+}
+
+/* Code Blocks */
+code,
+pre,
+.code-block {
+    background: var(--beta-dark) !important;
+    color: var(--beta-accent) !important;
+    border-radius: 4px !important;
+    padding: 12px !important;
+    font-family: 'Consolas', 'Monaco', monospace !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--beta-bg);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--beta-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--beta-primary-dark);
+}
+
+/* Loading Spinners */
+.spinner,
+[class*="Spinner"],
+.loading {
+    border-color: var(--beta-primary) var(--beta-primary) transparent transparent !important;
+}
+
+/* Alerts */
+.alert {
+    border-radius: 8px !important;
+    border-left: 4px solid var(--beta-primary) !important;
+}
+
+.alert-info {
+    background: rgba(33, 150, 243, 0.1) !important;
+    border-left-color: var(--beta-primary) !important;
+}
+
+.alert-success {
+    background: rgba(76, 175, 80, 0.1) !important;
+    border-left-color: #4CAF50 !important;
+}
+
+.alert-warning {
+    background: rgba(255, 152, 0, 0.1) !important;
+    border-left-color: #FF9800 !important;
+}
+
+.alert-danger {
+    background: rgba(244, 67, 54, 0.1) !important;
+    border-left-color: #F44336 !important;
+}
+
+/* Dropdown Menus */
+.dropdown-menu {
+    background: var(--beta-white) !important;
+    border: 1px solid var(--beta-light-gray) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dropdown-item:hover {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+}
+
+/* Modal Dialogs */
+.modal-content {
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+}
+
+.modal-header {
+    background: var(--beta-primary) !important;
+    color: var(--beta-white) !important;
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.modal-footer {
+    background: var(--beta-bg) !important;
+    border-radius: 0 0 12px 12px !important;
+}
+
+/* Tooltips */
+.tooltip {
+    background: var(--beta-dark) !important;
+    color: var(--beta-white) !important;
+    border-radius: 4px !important;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+}
+
+/* Page Title */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--beta-dark) !important;
+    font-weight: 700 !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb {
+    background: transparent !important;
+    padding: 12px 0 !important;
+}
+
+.breadcrumb-item a {
+    color: var(--beta-primary) !important;
+}
+
+.breadcrumb-item.active {
+    color: var(--beta-gray) !important;
+}
+
+/* Footer */
+footer {
+    background: var(--beta-dark) !important;
+    color: var(--beta-white) !important;
+    border-top: 3px solid var(--beta-accent) !important;
+    padding: 16px !important;
+    text-align: center;
+}
+
+/* Custom BETA Watermark */
+body::before {
+    content: "";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 120px;
+    font-weight: 900;
+    color: rgba(33, 150, 243, 0.03);
+    z-index: -1;
+    pointer-events: none;
+    letter-spacing: 20px;
+}

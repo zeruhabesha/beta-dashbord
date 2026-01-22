@@ -1,0 +1,575 @@
+/* ============================================
+   SOC DASHBOARD - PAGE-SPECIFIC STYLES
+   Layout and styling for individual dashboard pages
+   ============================================ */
+
+/* ============================================
+   UNIFIED DASHBOARD PAGE
+   ============================================ */
+.unified-dashboard {
+    animation: fadeIn var(--transition-base);
+}
+
+.dashboard-header {
+    margin-bottom: var(--space-xl);
+}
+
+.dashboard-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-sm);
+}
+
+.dashboard-subtitle {
+    font-size: var(--font-size-base);
+    color: var(--color-text-tertiary);
+}
+
+.dashboard-kpi-section {
+    margin-bottom: var(--space-2xl);
+}
+
+.dashboard-charts-section {
+    margin-bottom: var(--space-2xl);
+}
+
+.dashboard-data-completeness {
+    margin-bottom: var(--space-2xl);
+}
+
+.dashboard-alerts-section {
+    margin-bottom: var(--space-xl);
+}
+
+/* Data Completeness Grid */
+.data-completeness-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+}
+
+/* ============================================
+   SIEM ALERTS PAGE
+   ============================================ */
+.siem-alerts-page {
+    animation: fadeIn var(--transition-base);
+}
+
+.alerts-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    flex: 1;
+}
+
+.filter-label {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-select {
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg-tertiary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--color-brand-primary);
+}
+
+.alerts-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.alerts-visualization-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+/* ============================================
+   IDS/IPS ANALYSIS PAGE
+   ============================================ */
+.ids-ips-page {
+    animation: fadeIn var(--transition-base);
+}
+
+.network-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.traffic-analysis-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.blocked-ips-section {
+    margin-bottom: var(--space-xl);
+}
+
+.intrusion-attempts-section {
+    margin-bottom: var(--space-xl);
+}
+
+/* ============================================
+   EDR ANALYSIS PAGE
+   ============================================ */
+.edr-page {
+    animation: fadeIn var(--transition-base);
+}
+
+.endpoint-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.threat-timeline-section {
+    margin-bottom: var(--space-xl);
+}
+
+.affected-hosts-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.edr-events-section {
+    margin-bottom: var(--space-xl);
+}
+
+/* ============================================
+   UNIFIED TIMELINE PAGE
+   ============================================ */
+.timeline-page {
+    animation: fadeIn var(--transition-base);
+}
+
+.timeline-filters {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.timeline-visualization {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    min-height: 500px;
+}
+
+.timeline-events-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.timeline-event {
+    display: flex;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-left: 4px solid var(--color-border-primary);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.timeline-event:hover {
+    background-color: var(--color-bg-tertiary);
+    border-left-color: var(--color-brand-primary);
+    box-shadow: var(--shadow-md);
+}
+
+.timeline-event.critical {
+    border-left-color: var(--color-critical);
+}
+
+.timeline-event.high {
+    border-left-color: var(--color-high);
+}
+
+.timeline-event.medium {
+    border-left-color: var(--color-medium);
+}
+
+.timeline-event.low {
+    border-left-color: var(--color-low);
+}
+
+.timeline-event-time {
+    flex-shrink: 0;
+    width: 120px;
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-tertiary);
+}
+
+.timeline-event-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.timeline-event-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.timeline-event-source {
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+}
+
+.timeline-event-title {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+}
+
+.timeline-event-details {
+    display: flex;
+    gap: var(--space-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.timeline-event-detail {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.timeline-event-detail-label {
+    color: var(--color-text-tertiary);
+}
+
+.timeline-event-detail-value {
+    font-family: var(--font-family-mono);
+    color: var(--color-text-primary);
+}
+
+/* ============================================
+   HOST/IP CORRELATION PAGE
+   ============================================ */
+.correlation-page {
+    animation: fadeIn var(--transition-base);
+}
+
+.correlation-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-xl);
+}
+
+.correlation-graph-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.correlation-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.correlation-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+}
+
+.correlation-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.correlation-stat-label {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.correlation-stat-value {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--color-text-primary);
+}
+
+.top-communicators {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.top-communicators-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.communicator-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.communicator-item:hover {
+    background-color: var(--color-bg-elevated);
+    transform: translateX(4px);
+}
+
+.communicator-ip {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-sm);
+    color: var(--color-info);
+}
+
+.communicator-count {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.communicator-badge {
+    padding: var(--space-xs) var(--space-sm);
+    background-color: var(--color-brand-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+}
+
+.suspicious-patterns {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-lg);
+}
+
+.suspicious-pattern-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    background-color: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--color-critical);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-sm);
+}
+
+.suspicious-pattern-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--color-critical);
+    flex-shrink: 0;
+}
+
+.suspicious-pattern-content {
+    flex: 1;
+}
+
+.suspicious-pattern-title {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-critical);
+    margin-bottom: var(--space-xs);
+}
+
+.suspicious-pattern-description {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+}
+
+.correlated-events-section {
+    margin-bottom: var(--space-xl);
+}
+
+/* Graph Node Styles (for D3.js) */
+.graph-node {
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.graph-node circle {
+    stroke-width: 2px;
+    transition: all var(--transition-fast);
+}
+
+.graph-node.host circle {
+    fill: var(--color-brand-primary);
+    stroke: var(--color-brand-secondary);
+}
+
+.graph-node.source-ip circle {
+    fill: var(--color-info);
+    stroke: var(--color-brand-secondary);
+}
+
+.graph-node.dest-ip circle {
+    fill: var(--color-medium);
+    stroke: var(--color-high);
+}
+
+.graph-node.suspicious circle {
+    fill: var(--color-critical);
+    stroke: var(--color-high);
+    animation: pulse 2s infinite;
+}
+
+.graph-node:hover circle {
+    stroke-width: 4px;
+    filter: brightness(1.2);
+}
+
+.graph-node text {
+    font-family: var(--font-family-primary);
+    font-size: 11px;
+    fill: var(--color-text-secondary);
+    pointer-events: none;
+}
+
+.graph-link {
+    stroke: var(--color-border-secondary);
+    stroke-opacity: 0.6;
+    stroke-width: 1.5px;
+    transition: all var(--transition-fast);
+}
+
+.graph-link.suspicious {
+    stroke: var(--color-critical);
+    stroke-width: 3px;
+    stroke-dasharray: 5, 5;
+    animation: dash 1s linear infinite;
+}
+
+.graph-link:hover {
+    stroke-opacity: 1;
+    stroke-width: 3px;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -10;
+    }
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+@media (max-width: 1536px) {
+    .correlation-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .alerts-visualization-section,
+    .traffic-analysis-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1280px) {
+    .dashboard-charts-section .chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .affected-hosts-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+
+    .alerts-stats-row,
+    .network-stats-grid,
+    .endpoint-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .timeline-filters {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .data-completeness-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .alerts-filter-bar {
+        flex-direction: column;
+    }
+
+    .timeline-event {
+        flex-direction: column;
+    }
+
+    .timeline-event-time {
+        width: 100%;
+    }
+
+    .correlation-stats {
+        grid-template-columns: 1fr;
+    }
+}

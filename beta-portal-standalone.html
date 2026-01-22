@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETA Security Portal</title>
+    <!-- Using Google Fonts for Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0f111a;
+            --bg-panel: #1a1d2d;
+            --sidebar-width: 260px;
+            --accent-primary: #00f2ff;
+            --accent-secondary: #0066ff;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-bg: rgba(26, 29, 45, 0.7);
+            --hover-bg: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow: hidden;
+            /* Prevent body scroll, handle in containers */
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem;
+            position: relative;
+            z-index: 10;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+        }
+
+        .logo-mark {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #fff;
+            font-size: 18px;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        .brand-text {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(0, 242, 255, 0.1);
+            color: var(--accent-primary);
+            border-color: rgba(0, 242, 255, 0.2);
+            font-weight: 500;
+        }
+
+        .sidebar-footer {
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border: 2px solid var(--border-color);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info .name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .user-info .role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-dark);
+        }
+
+        .top-header {
+            height: 70px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+        }
+
+        .search-bar {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            background: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            padding: 10px 10px 10px 40px;
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 242, 255, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.5;
+            font-size: 14px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #ff4757;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-panel);
+        }
+
+        .time-range-picker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-panel);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .time-range-picker:hover {
+            border-color: var(--text-secondary);
+        }
+
+        /* Dashboard Iframe */
+        .dashboard-viewport {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+            /* Loading bg */
+        }
+
+        .dashboard-viewport iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-mark">B</div>
+                <span class="brand-text">BETA</span>
+            </div>
+
+            <nav class="nav-menu">
+                <!-- Navigation Items with IDs -->
+                <div class="nav-item active" data-view="overview">
+                    <span class="icon">📊</span>
+                    <span class="label">Overview</span>
+                </div>
+                <!-- 
+                     For demonstration, these other tabs point to the same dashboard 
+                     URL but with a different query or time range if desired.
+                     In a real setup, you would use different dashboard IDs.
+                -->
+                <div class="nav-item" data-view="threat">
+                    <span class="icon">🛡️</span>
+                    <span class="label">Threat Intel</span>
+                </div>
+                <div class="nav-item" data-view="siem">
+                    <span class="icon">🚨</span>
+                    <span class="label">SIEM Alerts</span>
+                </div>
+                <div class="nav-item" data-view="endpoints">
+                    <span class="icon">💻</span>
+                    <span class="label">Endpoints</span>
+                </div>
+                <div class="nav-item" data-view="network">
+                    <span class="icon">🕸️</span>
+                    <span class="label">Network</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">AD</div>
+                    <div class="user-info">
+                        <span class="name">Admin User</span>
+                        <span class="role">SOC Analyst</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="Search logs, IPs, or users...">
+                </div>
+
+                <div class="header-actions">
+                    <button class="action-btn">
+                        <span class="icon">🔔</span>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="action-btn">
+                        <span class="icon">⚙️</span>
+                    </button>
+                    <div class="time-range-picker">
+                        <span>Last 7 Days</span>
+                        <span class="icon">▼</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Frame -->
+            <div class="dashboard-viewport">
+                <iframe id="dashboard-frame" src="" frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // CONFIGURATION: Map sidebar views to OpenSearch Dashboard URLs
+        // You can change these IDs to switch between different dashboards!
+        const DASHBOARD_BASE = "http://localhost:5601/app/dashboards#/view/";
+        const DASHBOARD_PARAMS = "?embed=true&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(options:(hidePanelTitles:!f,useMargins:!t),viewMode:view)";
+
+        const DASHBOARDS = {
+            // Using your WORKING dashboard ID: dashboard-audit-clean
+            overview: DASHBOARD_BASE + "dashboard-audit-clean" + DASHBOARD_PARAMS,
+
+            // For now, pointing others to the same one (Demonstration)
+            // TODO: Create new dashboards and replace these IDs!
+            threat: DASHBOARD_BASE + "dashboard-audit-clean" + DASHBOARD_PARAMS + "&heading=ThreatIntel",
+            siem: DASHBOARD_BASE + "dashboard-audit-clean" + DASHBOARD_PARAMS + "&heading=SIEM",
+            endpoints: DASHBOARD_BASE + "dashboard-audit-clean" + DASHBOARD_PARAMS + "&heading=Endpoints",
+            network: DASHBOARD_BASE + "dashboard-audit-clean" + DASHBOARD_PARAMS + "&heading=Network"
+        };
+
+        // Initialize with Overview
+        const iframe = document.getElementById('dashboard-frame');
+        iframe.src = DASHBOARDS.overview;
+
+        // Interaction Logic
+        const navItems = document.querySelectorAll('.nav-item');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                // 1. Update UI Active State
+                document.querySelector('.nav-item.active').classList.remove('active');
+                item.classList.add('active');
+
+                // 2. Switch Dashboard URL
+                const viewKey = item.getAttribute('data-view');
+                if (DASHBOARDS[viewKey]) {
+                    console.log(`Switching to ${viewKey}:`, DASHBOARDS[viewKey]);
+                    iframe.src = DASHBOARDS[viewKey];
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

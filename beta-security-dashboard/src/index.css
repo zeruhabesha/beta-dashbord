@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        /* LIGHT MODE (Fallback / Not used primarily) */
+        --bg-body: #f1f5f9;
+        --bg-sidebar: #ffffff;
+        --bg-card: #ffffff;
+        --bg-input: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-subtle: #cbd5e1;
+        --accent-primary: #06b6d4;
+        --accent-glow: rgba(6, 182, 212, 0.15);
+        --status-critical: #ef4444;
+        --status-high: #f97316;
+        --status-low: #22c55e;
+    }
+
+    .dark {
+        /* DARK CYBER OPS THEME */
+        --bg-body: #020617;
+        /* Very dark slate/blue */
+        --bg-sidebar: #0f172a;
+        /* Slate 900 */
+        --bg-card: #1e293b;
+        /* Slate 800 */
+        --bg-input: #0f172a;
+        /* Slate 900 */
+        --bg-glass: rgba(15, 23, 42, 0.7);
+
+        --text-main: #f8fafc;
+        /* Slate 50 */
+        --text-muted: #94a3b8;
+        /* Slate 400 */
+        --text-accent: #22d3ee;
+        /* Cyan 400 */
+
+        --border-subtle: #334155;
+        /* Slate 700 */
+        --border-glow: rgba(34, 211, 238, 0.3);
+
+        --accent-primary: #06b6d4;
+        /* Cyan 500 */
+        --accent-secondary: #8b5cf6;
+        /* Violet 500 */
+
+        --accent-glow: 0 0 10px rgba(6, 182, 212, 0.3);
+        --accent-glow-strong: 0 0 20px rgba(6, 182, 212, 0.5);
+
+        --status-critical: #ef4444;
+        --status-high: #f97316;
+        --status-medium: #eab308;
+        --status-low: #22c55e;
+    }
+
+    body {
+        @apply bg-bg-body text-text-main antialiased font-sans overflow-hidden h-screen w-screen flex transition-colors duration-300;
+        background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #020617 70%);
+    }
+}
+
+@layer utilities {
+
+    /* Glassmorphism */
+    .glass-panel {
+        @apply bg-bg-glass backdrop-blur-md border border-border-subtle shadow-lg;
+    }
+
+    .glass-panel-hover {
+        @apply transition-all duration-200 hover:bg-opacity-80 hover:border-text-accent hover:shadow-[0_0_15px_rgba(34, 211, 238, 0.2)];
+    }
+
+    /* Neon Text */
+    .text-neon {
+        text-shadow: 0 0 5px rgba(34, 211, 238, 0.5);
+    }
+
+    .text-neon-danger {
+        text-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+    }
+
+    /* Status Indicators */
+    .status-dot {
+        @apply w-2 h-2 rounded-full box-content border border-transparent;
+        box-shadow: 0 0 5px currentColor;
+    }
+
+    /* Custom Scrollbar */
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(34, 211, 238, 0.2) transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(34, 211, 238, 0.2);
+        border-radius: 2px;
+        transition: background 0.2s;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(34, 211, 238, 0.5);
+        box-shadow: 0 0 5px rgba(34, 211, 238, 0.3);
+    }
+}

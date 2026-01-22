@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETA - OpenSearch Dashboards Setup Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1d29 100%);
+            color: #ffffff;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(26, 29, 41, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .beta-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #3b82f6, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 20px;
+            color: #cbd5e1;
+            margin-bottom: 32px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(26, 29, 41, 0.7);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            border-color: #3b82f6;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section {
+            background: rgba(26, 29, 41, 0.7);
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 32px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .section h2 {
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section h3 {
+            font-size: 20px;
+            margin: 24px 0 16px 0;
+            color: #60a5fa;
+        }
+
+        .icon {
+            font-size: 32px;
+        }
+
+        .step-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+            padding-left: 60px;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .code-block {
+            background: #0f1419;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            margin: 16px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .code-block code {
+            color: #22c55e;
+        }
+
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .file-card {
+            background: #0f1419;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .file-card:hover {
+            border-color: #3b82f6;
+            transform: translateX(4px);
+        }
+
+        .file-name {
+            font-weight: bold;
+            color: #3b82f6;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .file-desc {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .feature-card h4 {
+            color: #3b82f6;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
+
+        .feature-card p {
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+            color: #60a5fa;
+        }
+
+        .alert-warning {
+            background: rgba(234, 179, 8, 0.1);
+            border-color: #eab308;
+            color: #eab308;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .comparison-table th {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            font-weight: bold;
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .checkmark {
+            color: #22c55e;
+            font-size: 20px;
+        }
+
+        .crossmark {
+            color: #ef4444;
+            font-size: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            margin-top: 60px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section {
+            animation: fadeIn 0.6s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="beta-badge">BETA</div>
+            <h1>OpenSearch Dashboards</h1>
+            <p class="subtitle">Production-Ready SOC Monitoring Configuration</p>
+            <p style="color: #94a3b8;">Handles millions of security events with server-side aggregations</p>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">4</div>
+                <div class="stat-label">Index Patterns</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">7+</div>
+                <div class="stat-label">Visualizations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">6</div>
+                <div class="stat-label">Dashboards</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">1M+</div>
+                <div class="stat-label">Events Supported</div>
+            </div>
+        </div>
+
+        <div class="alert alert-success">
+            <strong>✓ Ready to Deploy!</strong> All configuration files are created and ready to import into OpenSearch
+            Dashboards.
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🚀</span> Quick Start (3 Steps)</h2>
+            <ol class="step-list">
+                <li>
+                    <strong>Configure OpenSearch Dashboards</strong>
+                    <div class="code-block">
+                        <code>cp opensearch-dashboards-config/opensearch_dashboards.yml /path/to/config/</code><br>
+                        <code>systemctl restart opensearch-dashboards</code>
+                    </div>
+                </li>
+                <li>
+                    <strong>Ingest Sample Data</strong>
+                    <div class="code-block">
+                        <code>pip install opensearch-py</code><br>
+                        <code>python opensearch-dashboards-config/ingest-sample-data.py</code>
+                    </div>
+                    <div class="alert alert-info">
+                        This will create 15,000 sample security events across 3 tenants
+                    </div>
+                </li>
+                <li>
+                    <strong>Import Dashboards</strong>
+                    <p>Open <a href="http://localhost:5601" style="color: #3b82f6;">http://localhost:5601</a></p>
+                    <p>Navigate to: <strong>Stack Management → Saved Objects → Import</strong></p>
+                    <p>Select: <code>saved-objects-export.ndjson</code></p>
+                </li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📦</span> What's Included</h2>
+
+            <div class="file-list">
+                <div class="file-card">
+                    <div class="file-name">saved-objects-export.ndjson</div>
+                    <div class="file-desc">Index patterns, visualizations, and dashboards ready to import</div>
+                </div>
+                <div class="file-card">
+                    <div class="file-name">opensearch_dashboards.yml</div>
+                    <div class="file-desc">BETA branding, dark theme, multi-tenancy configuration</div>
+                </div>
+                <div class="file-card">
+                    <div class="file-name">ingest-sample-data.py</div>
+                    <div class="file-desc">Generates 15,000 realistic SIEM/IDS/EDR events</div>
+                </div>
+                <div class="file-card">
+                    <div class="file-name">README.md</div>
+                    <div class="file-desc">Complete setup guide with troubleshooting</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📊</span> Dashboard Features</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>Unified Security Dashboard</h4>
+                    <p>Single-pane view combining SIEM, IDS/IPS, and EDR data with KPIs, timelines, and alerts</p>
+                </div>
+                <div class="feature-card">
+                    <h4>SIEM Alerts</h4>
+                    <p>Security Information and Event Management monitoring with trend analysis</p>
+                </div>
+                <div class="feature-card">
+                    <h4>IDS/IPS Analysis</h4>
+                    <p>Intrusion detection with blocked IPs, traffic analysis, and attack patterns</p>
+                </div>
+                <div class="feature-card">
+                    <h4>EDR Analysis</h4>
+                    <p>Endpoint security with threat detection, affected hosts, and process monitoring</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Unified Timeline</h4>
+                    <p>Comprehensive event timeline across all data sources with filtering</p>
+                </div>
+                <div class="feature-card">
+                    <h4>Host/IP Correlation</h4>
+                    <p>Network relationship analysis for threat hunting and investigation</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">⚡</span> Why OpenSearch Dashboards?</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Custom Dashboard</th>
+                        <th>OpenSearch Dashboards</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Data Capacity</td>
+                        <td><span class="crossmark">✗</span> ~10K events</td>
+                        <td><span class="checkmark">✓</span> Millions+</td>
+                    </tr>
+                    <tr>
+                        <td>Query Processing</td>
+                        <td><span class="crossmark">✗</span> Client-side</td>
+                        <td><span class="checkmark">✓</span> Server-side</td>
+                    </tr>
+                    <tr>
+                        <td>Aggregations</td>
+                        <td><span class="crossmark">✗</span> Limited</td>
+                        <td><span class="checkmark">✓</span> Advanced</td>
+                    </tr>
+                    <tr>
+                        <td>Performance</td>
+                        <td><span class="crossmark">✗</span> Slow with large data</td>
+                        <td><span class="checkmark">✓</span> Optimized</td>
+                    </tr>
+                    <tr>
+                        <td>Scalability</td>
+                        <td><span class="crossmark">✗</span> Poor</td>
+                        <td><span class="checkmark">✓</span> Excellent</td>
+                    </tr>
+                    <tr>
+                        <td>BETA Branding</td>
+                        <td><span class="checkmark">✓</span> Custom</td>
+                        <td><span class="checkmark">✓</span> Configurable</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Important:</strong> For production SOC monitoring with millions of events, always use
+                OpenSearch Dashboards (official tool) instead of custom client-side dashboards.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🎨</span> BETA Branding</h2>
+
+            <h3>Applied Configuration</h3>
+            <div class="code-block">
+                <code>opensearchDashboards.branding:</code><br>
+                <code>  applicationTitle: "BETA - OpenSearch Security"</code><br>
+                <code></code><br>
+                <code>uiSettings.overrides:</code><br>
+                <code>  "theme:darkMode": true</code>
+            </div>
+
+            <h3>Visual Elements</h3>
+            <ul style="margin-left: 60px; color: #cbd5e1;">
+                <li>Application title: "BETA - OpenSearch Security"</li>
+                <li>Dark theme enabled by default</li>
+                <li>Blue accent colors (#3b82f6)</li>
+                <li>Dashboard titles prefixed with "BETA"</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">📈</span> Sample Data Details</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>15,000 Events</h4>
+                    <p>5,000 events per tenant across 3 tenants</p>
+                </div>
+                <div class="feature-card">
+                    <h4>3 Data Sources</h4>
+                    <p>SIEM, IDS/IPS, and EDR events</p>
+                </div>
+                <div class="feature-card">
+                    <h4>7 Days History</h4>
+                    <p>Events distributed across last week</p>
+                </div>
+                <div class="feature-card">
+                    <h4>4 Severity Levels</h4>
+                    <p>Critical, High, Medium, Low</p>
+                </div>
+            </div>
+
+            <h3>Index Structure</h3>
+            <div class="code-block">
+                <code>tenant_01_siem-2025.12.29</code><br>
+                <code>tenant_01_ips-2025.12.29</code><br>
+                <code>tenant_01_edr-2025.12.29</code><br>
+                <code>...</code>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2><span class="icon">🔧</span> Next Steps</h2>
+
+            <ol class="step-list">
+                <li>
+                    <strong>Import the saved objects</strong>
+                    <p>Follow the Quick Start guide above to import dashboards</p>
+                </li>
+                <li>
+                    <strong>Run the sample data script</strong>
+                    <p>Generate test data to see dashboards in action</p>
+                </li>
+                <li>
+                    <strong>Connect to your real data</strong>
+                    <p>Update index patterns to match your actual security indices</p>
+                </li>
+                <li>
+                    <strong>Customize visualizations</strong>
+                    <p>Add more charts, tables, and metrics as needed</p>
+                </li>
+                <li>
+                    <strong>Set up alerts</strong>
+                    <p>Configure alerting for critical security events</p>
+                </li>
+            </ol>
+        </div>
+
+        <div class="section" style="text-align: center;">
+            <h2><span class="icon">🎯</span> Ready to Get Started?</h2>
+            <p style="margin: 20px 0; color: #cbd5e1;">All files are located in:</p>
+            <div class="code-block" style="display: inline-block; text-align: left;">
+                <code>c:\opensearch-standalone\opensearch-dashboards-config\</code>
+            </div>
+            <br><br>
+            <a href="http://localhost:5601" class="btn">Open OpenSearch Dashboards →</a>
+        </div>
+
+        <footer>
+            <p>BETA - OpenSearch Security Dashboard Configuration</p>
+            <p>Production-ready SOC monitoring for millions of security events</p>
+        </footer>
+    </div>
+</body>
+
+</html>

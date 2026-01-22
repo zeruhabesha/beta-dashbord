@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beta Security Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Theme Colors: Dark Charcoal / Deep Navy */
+            --bg-body: #0f1216;
+            --bg-sidebar: #161b22;
+            --bg-header: #161b22;
+            --bg-card: #1f262e;
+            --bg-input: #0d1117;
+
+            /* Accents */
+            --accent-primary: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --border-subtle: #30363d;
+
+            /* Text */
+            --text-main: #f0f6fc;
+            --text-muted: #8b949e;
+
+            /* Status Colors */
+            --color-critical: #ff4d4f;
+            --color-high: #fa8c16;
+            --color-low: #52c41a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- Sidebar Navigation --- */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border-subtle);
+            display: flex;
+            flex-direction: column;
+            z-index: 20;
+        }
+
+        .brand-section {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .brand-logo {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-primary);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .nav-list {
+            flex: 1;
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background: var(--accent-glow);
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        /* --- Top Navigation Bar --- */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar {
+            height: 64px;
+            background: var(--bg-header);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            padding: 0 2rem;
+            gap: 24px;
+        }
+
+        /* Navbar Elements */
+        .tenant-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-main);
+            cursor: pointer;
+        }
+
+        .global-search {
+            flex: 1;
+            position: relative;
+            max-width: 500px;
+        }
+
+        .global-search input {
+            width: 100%;
+            background: var(--bg-body);
+            border: 1px solid var(--border-subtle);
+            padding: 10px 10px 10px 40px;
+            border-radius: 6px;
+            color: var(--text-main);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Time Picker */
+        .time-control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-input);
+            padding: 4px 8px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+        }
+
+        .quick-ranges {
+            display: flex;
+            gap: 4px;
+            border-right: 1px solid var(--border-subtle);
+            padding-right: 8px;
+        }
+
+        .time-btn {
+            padding: 4px 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-radius: 4px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+        }
+
+        .time-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .time-btn.active {
+            color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.1);
+            font-weight: 600;
+        }
+
+        .custom-range {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-input {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color-scheme: dark;
+        }
+
+        .date-input::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            opacity: 0.6;
+        }
+
+        .date-input:focus {
+            outline: none;
+        }
+
+        .apply-btn {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* User Actions */
+        .user-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-left: auto;
+        }
+
+        .icon-btn {
+            position: relative;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 18px;
+        }
+
+        .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: var(--color-critical);
+            color: white;
+            font-size: 10px;
+            padding: 2px 4px;
+            border-radius: 10px;
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            background: #333;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--border-subtle);
+        }
+
+        .role-text {
+            display: flex;
+            flex-direction: column;
+            font-size: 12px;
+            line-height: 1.2;
+        }
+
+        .role-label {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+
+        /* --- Content Area --- */
+        .content-area {
+            flex: 1;
+            background: var(--bg-body);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Dynamic Grid for SIEM View */
+        .siem-grid {
+            display: none;
+            /* Hidden by default */
+            flex-direction: column;
+            height: 100%;
+            padding: 1.5rem;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .siem-grid.active {
+            display: flex;
+        }
+
+        /* KPI Row */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.5rem;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .kpi-title {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--color-low);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .kpi-sub.negative {
+            color: var(--color-critical);
+        }
+
+        .kpi-red {
+            color: var(--color-critical);
+        }
+
+        /* Dashboard Wrapper used for Charts/Table */
+        .dashboard-wrapper {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            min-height: 500px;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Fullscreen generic iframe for non-custom views */
+        .generic-view {
+            display: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .generic-view.active {
+            display: block;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        .loading-overlay.active {
+            opacity: 0.8;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-subtle);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="brand-section">
+            <div class="brand-logo">
+                <div class="brand-icon">S</div>
+                <span>Unified Security</span>
+            </div>
+        </div>
+        <nav class="nav-list">
+            <div class="nav-item active" onclick="setModule('unified', this)"><span
+                    class="nav-icon">🏠</span><span>Unified Dashboard</span></div>
+            <div class="nav-item" onclick="setModule('siem', this)"><span class="nav-icon">⚠️</span><span>SIEM
+                    Alerts</span></div>
+            <div class="nav-item" onclick="setModule('ids', this)"><span class="nav-icon">🛡️</span><span>IDS / IPS
+                    Analysis</span></div>
+            <div class="nav-item" onclick="setModule('edr', this)"><span class="nav-icon">💻</span><span>EDR
+                    Analysis</span></div>
+            <div class="nav-item" onclick="setModule('timeline', this)"><span class="nav-icon">⏳</span><span>Unified
+                    Timeline</span></div>
+            <div class="nav-item" onclick="setModule('correlation', this)"><span class="nav-icon">🔗</span><span>Host /
+                    IP Correlation</span></div>
+            <div class="nav-item" onclick="setModule('reports', this)"><span
+                    class="nav-icon">📄</span><span>Reports</span></div>
+        </nav>
+    </aside>
+
+    <!-- CONTENT -->
+    <div class="main-wrapper">
+        <header class="navbar">
+            <div class="tenant-selector"><span>Tenant_01</span><span>▼</span></div>
+            <div class="global-search"><span class="search-icon">🔍</span><input type="text" id="global-search-input"
+                    placeholder="Search alerts, hosts, IPs..." onkeypress="handleSearch(event)"></div>
+            <div class="time-control-group">
+                <div class="quick-ranges">
+                    <button class="time-btn" onclick="setRelativeTime('15m', this)">15m</button>
+                    <button class="time-btn active" onclick="setRelativeTime('24h', this)">24h</button>
+                    <button class="time-btn" onclick="setRelativeTime('7d', this)">7d</button>
+                </div>
+                <div class="custom-range">
+                    <input type="datetime-local" id="start-time" class="date-input">
+                    <span style="color:var(--text-muted); font-size:10px;">TO</span>
+                    <input type="datetime-local" id="end-time" class="date-input">
+                    <button class="apply-btn" onclick="applyCustomTime()">GO</button>
+                </div>
+            </div>
+            <div class="user-actions">
+                <div class="icon-btn">🔔<span class="badge">5</span></div>
+                <div class="profile">
+                    <div class="role-text"><span>Admin User</span><span class="role-label">SOC Analyst</span></div>
+                    <div class="avatar">AD</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <div class="loading-overlay" id="loader">
+                <div class="spinner"></div>
+            </div>
+
+            <!-- VIEW 1: GENERIC IFRAME (Unified, EDR, etc.) -->
+            <div id="generic-container" class="generic-view active">
+                <iframe id="main-frame" src=""></iframe>
+            </div>
+
+            <!-- VIEW 2: CUSTOM SIEM GRID -->
+            <div id="siem-container" class="siem-grid">
+                <!-- KPI Section -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <span class="kpi-title">Total Events</span>
+                        <span class="kpi-value" id="kpi-total">Loading...</span>
+                        <span class="kpi-sub">▲ 12% vs last period</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Critical Alerts</span>
+                        <span class="kpi-value kpi-red" id="kpi-critical">Loading...</span>
+                        <span class="kpi-sub negative">Requires Attention</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Auth Failures</span>
+                        <span class="kpi-value" id="kpi-auth">Loading...</span>
+                        <span class="kpi-sub">Keycloak / SSH</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Unique Users</span>
+                        <span class="kpi-value" id="kpi-users">--</span>
+                        <span class="kpi-sub">Active Principals</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Policy Violations</span>
+                        <span class="kpi-value" id="kpi-policy">--</span>
+                        <span class="kpi-sub">Compliance Check</span>
+                    </div>
+                </div>
+
+                <!-- Charts Section (Embedded Dashboard) -->
+                <div class="dashboard-wrapper">
+                    <!-- We embed the same dashboard but filtered for SIEM context -->
+                    <iframe id="siem-frame" src=""></iframe>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // CONFIG
+        const DASHBOARD_ID = "dashboard-audit-clean";
+        const OS_API = "http://localhost:9201"; // OpenSearch Port
+        const OS_AUTH = "Basic " + btoa("admin:admin"); // Using Default Creds
+        const INDEX_PATTERN = "security-auditlog-*";
+
+        const BASE_DASH_URL = `http://localhost:5601/app/dashboards#/view/${DASHBOARD_ID}?embed=true`;
+
+        // STATE
+        let appState = {
+            view: 'unified',
+            time: '24h',
+            query: '',
+            moduleFilters: {
+                unified: "",
+                siem: "audit_category:FAILED_LOGIN",
+                ids: "audit_category:INDEX_EVENT",
+                edr: "audit_category:SSL_EXCEPTION",
+                timeline: "",
+                correlation: "",
+                reports: ""
+            }
+        };
+
+        // UI LOGIC
+        function setModule(moduleName, element) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            appState.view = moduleName;
+
+            // Switch Views
+            const generic = document.getElementById('generic-container');
+            const siem = document.getElementById('siem-container');
+
+            if (moduleName === 'siem') {
+                generic.classList.remove('active');
+                siem.classList.add('active');
+                refreshSIEM();
+            } else {
+                siem.classList.remove('active');
+                generic.classList.add('active');
+                updateDashboard(document.getElementById('main-frame'));
+            }
+        }
+
+        function setRelativeTime(range, element) {
+            document.querySelectorAll('.time-btn').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            appState.time = range;
+
+            if (appState.view === 'siem') refreshSIEM();
+            else updateDashboard(document.getElementById('main-frame'));
+        }
+
+        // DASHBOARD UPDATE
+        function updateDashboard(targetFrame) {
+            const loader = document.getElementById('loader');
+            loader.classList.add('active');
+
+            let timeParam = `_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-${appState.time},to:now))`;
+
+            const filterString = appState.moduleFilters[appState.view];
+            let finalQuery = appState.query;
+            if (filterString) finalQuery = finalQuery ? `(${finalQuery}) AND (${filterString})` : filterString;
+
+            const appParam = `_a=(description:'',filters:!(),fullScreenMode:!f,options:(hidePanelTitles:!f,useMargins:!t),query:(language:kuery,query:'${finalQuery}'),timeRestore:!f,title:'',viewMode:view)`;
+
+            targetFrame.src = `${BASE_DASH_URL}&${timeParam}&${appParam}`;
+            setTimeout(() => loader.classList.remove('active'), 1500);
+        }
+
+        // SIEM SPECIFIC LOGIC (FETCH API)
+        async function refreshSIEM() {
+            // Update the Embedded Chart Frame
+            updateDashboard(document.getElementById('siem-frame'));
+
+            // Fetch KPI Data
+            await fetchKPI("kpi-total", { query: { match_all: {} } });
+            await fetchKPI("kpi-auth", { query: { match: { "audit_category": "FAILED_LOGIN" } } });
+            await fetchKPI("kpi-critical", { query: { match: { "audit_category": "SSL_EXCEPTION" } } }); // Mock Critical logic
+
+            // Mock others for now
+            document.getElementById('kpi-users').innerText = "42";
+            document.getElementById('kpi-policy').innerText = "0";
+        }
+
+        async function fetchKPI(elementId, queryBody) {
+            try {
+                // Construct URL
+                // Note: Using a simplified search endpoint. In production, use complex aggregations.
+                const response = await fetch(`${OS_API}/${INDEX_PATTERN}/_count`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': OS_AUTH,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(queryBody)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById(elementId).innerText = data.count;
+                } else {
+                    console.error("API Error", response);
+                    document.getElementById(elementId).innerText = "Err";
+                }
+            } catch (e) {
+                console.error("Fetch Error", e);
+                document.getElementById(elementId).innerText = "-";
+            }
+        }
+
+        // Init
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('end-time').value = now.toISOString().slice(0, 16);
+        setTimeout(() => setModule('unified', document.querySelector('.nav-item.active')), 500);
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETA Security Portal</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Using Google Fonts for Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SVGs for Icons -->
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-mark">B</div>
+                <span class="brand-text">BETA</span>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <span class="icon">📊</span>
+                    <span class="label">Overview</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">🛡️</span>
+                    <span class="label">Threat Intel</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">🚨</span>
+                    <span class="label">SIEM Alerts</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">💻</span>
+                    <span class="label">Endpoints</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <span class="icon">🕸️</span>
+                    <span class="label">Network</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">AD</div>
+                    <div class="user-info">
+                        <span class="name">Admin User</span>
+                        <span class="role">SOC Analyst</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="Search logs, IPs, or users...">
+                </div>
+
+                <div class="header-actions">
+                    <button class="action-btn">
+                        <span class="icon">🔔</span>
+                        <span class="badge">3</span>
+                    </button>
+                    <button class="action-btn">
+                        <span class="icon">⚙️</span>
+                    </button>
+                    <div class="time-range-picker">
+                        <span>Last 7 Days</span>
+                        <span class="icon">▼</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Frame -->
+            <div class="dashboard-viewport">
+                <!-- IMPORTANT: REPLACE THE src URL BELOW with your specific dashboard URL -->
+                <!-- Add '?embed=true' to the end of the URL before the '&_g=' part -->
+                <iframe id="dashboard-frame"
+                    src="http://localhost:5601/app/dashboards#/view/dashboard-audit-clean?embed=true&_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-7d,to:now))&_a=(description:'Security%20audit%20log%20monitoring%20dashboard',filters:!(),fullScreenMode:!f,options:(hidePanelTitles:!f,useMargins:!t),query:(language:kuery,query:''),timeRestore:!t,title:'BETA%20-%20Security%20Audit%20Dashboard%20(Working)',viewMode:view)"
+                    frameborder="0" allowfullscreen>
+                </iframe>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Simple Interaction Script
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                document.querySelector('.nav-item.active').classList.remove('active');
+                item.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>
