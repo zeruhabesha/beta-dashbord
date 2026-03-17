@@ -8,29 +8,23 @@ server.port: 5601
 server.name: "beta-opensearch-dashboards"
 
 # OpenSearch Connection
-opensearch.hosts: ["https://localhost:9200"]
-opensearch.username: "admin"
-opensearch.password: "admin"
-opensearch.ssl.verificationMode: none
+opensearch.hosts: ["https://192.168.1.11:9200"]
+# opensearch.username: "admin"
+# opensearch.password: "admin"
+# opensearch.ssl.verificationMode: none
 
 # ========================================
 # BETA BRANDING
 # ========================================
 opensearchDashboards.branding:
   applicationTitle: "BETA - OpenSearch Security"
-  # Uncomment and configure after adding custom logo files
-  # logo:
-  #   defaultUrl: "/ui/beta-logo.svg"
-  # mark:
-  #   defaultUrl: "/ui/beta-mark.svg"
-  # faviconUrl: "/ui/beta-favicon.ico"
 
 # ========================================
 # UI SETTINGS - DARK THEME
 # ========================================
 uiSettings.overrides:
   # "theme:darkMode": true  <-- Removed to allow toggling
-  "theme:version": "v8"
+  # "theme:version": "v8"
   "dateFormat": "YYYY-MM-DD HH:mm:ss"
   "dateFormat:tz": "UTC"
   "defaultIndex": "unified-index-pattern"
@@ -38,10 +32,10 @@ uiSettings.overrides:
 # ========================================
 # MULTI-TENANCY CONFIGURATION
 # ========================================
-opensearch_security.multitenancy.enabled: true
-opensearch_security.multitenancy.tenants.preferred: ["Global", "Private"]
-opensearch_security.multitenancy.tenants.enable_global: true
-opensearch_security.multitenancy.tenants.enable_private: true
+# opensearch_security.multitenancy.enabled: true
+# opensearch_security.multitenancy.tenants.preferred: ["Global", "Private"]
+# opensearch_security.multitenancy.tenants.enable_global: true
+# opensearch_security.multitenancy.tenants.enable_private: true
 
 # ========================================
 # SECURITY CONFIGURATION
@@ -49,9 +43,9 @@ opensearch_security.multitenancy.tenants.enable_private: true
 # ========================================
 # SECURITY CONFIGURATION
 # ========================================
-opensearch_security.auth.type: "basicauth"
-opensearch_security.cookie.secure: false
-opensearch_security.cookie.password: "min32characterpasswordforencryption"
+# opensearch_security.auth.type: "basicauth"
+# opensearch_security.cookie.secure: false
+# opensearch_security.cookie.password: "min32characterpasswordforencryption"
 # Relax CSP for Iframe embedding
 csp.strict: false
 csp.warnLegacyBrowsers: false
@@ -78,8 +72,8 @@ logging.verbose: false
 # ADDITIONAL SETTINGS
 # ========================================
 # Disable telemetry
-telemetry.enabled: false
-telemetry.optIn: false
+# telemetry.enabled: false
+# telemetry.optIn: false
 
 # Enable sample data
 # (useful for testing)

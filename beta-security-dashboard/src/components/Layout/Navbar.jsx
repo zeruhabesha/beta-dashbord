@@ -1,8 +1,8 @@
 import React from 'react';
-import { Search, Bell, ChevronDown, LogOut, ShieldAlert } from 'lucide-react';
+import { Search, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 
-export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onLogout, activeModuleConfig, onModuleChange, isDarkMode, onToggleTheme }) {
+export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onRequestLogout, activeModuleConfig, onModuleChange, isDarkMode, onToggleTheme }) {
 
     const ranges = ['15m', '1h', '24h', '7d'];
     const displayName = user || "Admin User";
@@ -12,38 +12,17 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onLogout
     const threatLevel = "High"; // can be dynamic
 
     return (
-        <header className="h-16 bg-bg-sidebar/80 backdrop-blur-md border-b border-border-subtle flex items-center px-6 gap-6 shrink-0 transition-colors duration-300 z-10 sticky top-0">
-            {/* Global Threat Level - NEW FEATURE */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded bg-bg-input border border-border-subtle shadow-inner">
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Threat Level:</span>
-                <div className="flex items-center gap-1.5">
-                    <ShieldAlert size={14} className="text-status-high animate-pulse" />
-                    <span className="text-sm font-bold text-status-high">{threatLevel}</span>
-                </div>
-            </div>
+        <header className="h-16 bg-bg-sidebar/80 backdrop-blur-md border-b border-border-subtle flex items-center px-6 gap-6 shrink-0 transition-colors duration-300 z-50 sticky top-0">
 
             <div className="h-6 w-px bg-border-subtle/50" />
 
-            {/* Module Selector / Title */}
+            {/* Module Selector / Title - Now Static */}
             <div className="flex items-center gap-4">
-                <div className="flex flex-col relative group">
-                    <span className="text-[10px] text-text-muted font-mono uppercase tracking-widest pb-0.5">Active Module</span>
-                    <div className="flex items-center gap-2 cursor-pointer">
-                        <span className="text-text-main font-bold text-lg leading-none group-hover:text-accent-primary transition-colors">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2 px-1">
+                        <span className="text-text-main font-bold text-lg leading-none">
                             {activeModuleConfig?.title || 'Security Dashboard'}
                         </span>
-                        <ChevronDown size={14} className="text-text-muted group-hover:text-accent-primary transition-colors" />
-
-                        {/* Quick Module Switcher Dropdown */}
-                        <select
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onChange={(e) => onModuleChange(e.target.value)}
-                            value={activeModuleConfig?.id || 'siem'}
-                        >
-                            <option value="siem">SIEM Operations</option>
-                            <option value="ids">IDS / IPS Analysis</option>
-                            <option value="edr">EDR Analysis</option>
-                        </select>
                     </div>
                 </div>
             </div>
@@ -92,16 +71,10 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onLogout
                     )}
                 </button>
 
-                <button className="relative text-text-muted hover:text-accent-primary transition-colors">
-                    <Bell size={18} />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-status-critical rounded-full animate-ping" />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-status-critical rounded-full" />
-                </button>
 
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden md:block">
                         <div className="text-sm font-semibold text-text-main leading-tight">{displayName}</div>
-                        <div className="text-[10px] text-text-muted font-mono uppercase">SOC Analyst L1</div>
                     </div>
 
                     <div className="relative group cursor-pointer">
@@ -113,7 +86,7 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onLogout
 
                     {/* Logout Button */}
                     <button
-                        onClick={onLogout}
+                        onClick={onRequestLogout}
                         className="p-2 text-text-muted hover:text-status-critical hover:bg-status-critical/10 rounded-full transition-colors"
                         title="Sign Out"
                     >

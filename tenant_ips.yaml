@@ -1,0 +1,19 @@
+# create-ips-tenant.yaml
+apiVersion: ids.betatech.com/v1alpha1
+kind: TenantIDS
+metadata:
+  name: ips-test-tenant
+spec:
+  tenantId: ips-test
+  suricata:
+    replicas: 1
+    # THE NEW CONFIGURATION
+    mode: "IPS"
+    ipsNetworking:
+      networkAttachments:
+        - "macvlan-conf-wan"
+        - "macvlan-conf-lan"
+      staticIP: "192.168.1.50/24"
+  logging:
+    kafkaBootstrapServers: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+    kafkaTopic: "custom-ips-test"

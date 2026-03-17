@@ -21,11 +21,12 @@ HEADERS = {'Content-Type': 'application/json'}
 AUTH = None 
 
 INDICES = {
-    'siem': 'siem-events-live',
-    'ids': 'ids-traffic-live',
-    'edr': 'edr-endpoints-live',
-    'vuln': 'vuln-scans-live',
-    'netflow': 'netflow-traffic-live'
+    'unified': 'tenant-01-logs',
+    'siem': 'tenant-01-siem',
+    'ids': 'tenant-01-ids',
+    'edr': 'tenant-01-edr',
+    'vuln': 'tenant-01-vuln',
+    'netflow': 'tenant-01-netflow'
 }
 
 def generate_siem_event(timestamp=None):
@@ -54,30 +55,59 @@ def generate_siem_event(timestamp=None):
     }
 
 def generate_ids_event(timestamp=None):
-    attack_types = ['SQL Injection', 'XSS Attack', 'Port Scan', 'DDoS Attack', 
-                    'Brute Force', 'Malware Download', 'Command Injection']
-    protocols = ['TCP', 'UDP', 'HTTP', 'HTTPS', 'SSH', 'FTP']
+    # Mimics Suricata Alert format
+    signatures = [
+        "ET EXPLOIT Possible SQL Injection", 
+        "ET MALWARE Cobalt Strike Beacon", 
+        "ET SCAN Nmap OS Detection",
+        "ET POLICY Tor Onion Domain Request",
+        "GPL ATTACK_RESPONSE Forbidden File Access"
+    ]
     
     if not timestamp:
         timestamp = datetime.utcnow().isoformat()
 
     return {
-        'alert_id': str(uuid.uuid4()),
         '@timestamp': timestamp,
-        'attack_type': random.choice(attack_types),
-        'signature_id': random.randint(1000000, 9999999),
-        'signature_name': f"ET {random.choice(['EXPLOIT', 'MALWARE', 'SCAN', 'POLICY'])} {fake.word()}",
-        'source_ip': fake.ipv4(),
-        'source_port': random.randint(1024, 65535),
-        'destination_ip': fake.ipv4(),
-        'destination_port': random.choice([80, 443, 22, 21, 3389, 8080]),
-        'protocol': random.choice(protocols),
-        'severity': random.choice(['Critical', 'High', 'Medium', 'Low']),
-        'action': random.choice(['Blocked', 'Allowed', 'Logged']),
-        'payload': fake.text(max_nb_chars=100),
-        'bytes_in': random.randint(100, 100000),
-        'bytes_out': random.randint(100, 100000),
-        'data_source': 'IDS'
+        'event_type': 'alert',
+        'proto': random.choice(['TCP', 'UDP', 'HTTP']),
+        'src_ip': fake.ipv4(),
+        'src_port': random.randint(1024, 65535),
+        'dest_ip': fake.ipv4(),
+        'dest_port': random.choice([80, 443, 8080]),
+        'alert': {
+            'action': 'allowed',
+            'gid': 1,
+            'signature_id': random.randint(2000000, 2999999),
+            'signature': random.choice(signatures),
+            'category': 'Network Anomaly',
+            'severity': random.randint(1, 3) # Suricata uses 1=High, 3=Low usually
+        },
+        'tenant_id': 'tenant-01',
+        'data_source': 'suricata'
+    }
+
+def generate_zeek_event(timestamp=None):
+    # Mimics Zeek Conn/DNS/HTTP logs
+    if not timestamp:
+        timestamp = datetime.utcnow().isoformat()
+    
+    event_type = random.choice(['conn', 'dns', 'http', 'ssl'])
+    
+    return {
+        '@timestamp': timestamp,
+        'event_type': event_type,
+        'proto': 'TCP' if event_type != 'dns' else 'UDP',
+        'src_ip': fake.ipv4(),
+        'dest_ip': fake.ipv4(),
+        'dest_port': 53 if event_type == 'dns' else 443,
+        'zeek': {
+            'uid': str(uuid.uuid4())[:18],
+            'service': event_type,
+            'duration': random.uniform(0.1, 5.0)
+        },
+        'tenant_id': 'tenant-01',
+        'data_source': 'zeek'
     }
 
 def generate_edr_event(timestamp=None):
@@ -164,14 +194,12 @@ def main():
         
         # SIEM
         send_to_opensearch(INDICES['siem'], generate_siem_event(past_time))
-        # IDS
+        # IDS (Suricata)
         send_to_opensearch(INDICES['ids'], generate_ids_event(past_time))
+        # Zeek
+        send_to_opensearch(INDICES['ids'], generate_zeek_event(past_time))
         # EDR
         send_to_opensearch(INDICES['edr'], generate_edr_event(past_time))
-        # Vuln
-        send_to_opensearch(INDICES['vuln'], generate_vuln_event(past_time))
-        # Netflow
-        send_to_opensearch(INDICES['netflow'], generate_netflow_event(past_time))
         
         if i % 10 == 0:
             print(f"Generated {i} historical events...")
@@ -184,9 +212,8 @@ def main():
             # Generate one of each per cycle
             send_to_opensearch(INDICES['siem'], generate_siem_event())
             send_to_opensearch(INDICES['ids'], generate_ids_event())
+            send_to_opensearch(INDICES['ids'], generate_zeek_event())
             send_to_opensearch(INDICES['edr'], generate_edr_event())
-            send_to_opensearch(INDICES['vuln'], generate_vuln_event())
-            send_to_opensearch(INDICES['netflow'], generate_netflow_event())
             
             print(".", end="", flush=True)
             time.sleep(1) # 1 second delay

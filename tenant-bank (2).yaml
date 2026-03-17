@@ -1,0 +1,15 @@
+apiVersion: ids.betatech.com/v1alpha1
+kind: TenantIDS
+metadata:
+  name: tenant-bank
+spec:
+  tenantId: bank-secure
+  suricata:
+    replicas: 2
+  zeek:
+    replicas: 1
+  logging:
+    # Same Cluster
+    kafkaBootstrapServers: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+    # Custom Topic Name
+    kafkaTopic: "bank-security-logs"

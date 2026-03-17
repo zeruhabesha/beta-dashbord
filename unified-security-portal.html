@@ -321,8 +321,8 @@
             overflow: hidden;
         }
 
-        /* Dynamic Grid for SIEM View */
-        .siem-grid {
+        /* Dynamic Grid for SIEM/IDS View */
+        .siem-grid, .ids-grid {
             display: none;
             /* Hidden by default */
             flex-direction: column;
@@ -332,8 +332,41 @@
             overflow-y: auto;
         }
 
-        .siem-grid.active {
+        .siem-grid.active, .ids-grid.active {
             display: flex;
+        }
+
+        .alert-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .alert-table th {
+            padding: 12px 16px;
+            color: var(--text-muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 13px;
+        }
+
+        .alert-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 14px;
+        }
+
+        .alert-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge-engine {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         /* KPI Row */
@@ -559,6 +592,97 @@
                 </div>
             </div>
 
+            <!-- VIEW 3: CUSTOM IDS GRID (Temporary Data based on CRD) -->
+            <div id="ids-container" class="ids-grid">
+                <!-- KPI Section based on CRD Status -->
+                <div class="kpi-row">
+                    <div class="kpi-card">
+                        <span class="kpi-title">TenantIDS Status</span>
+                        <span class="kpi-value" style="color: var(--color-low);">Ready</span>
+                        <span class="kpi-sub">Phase</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Suricata Engines</span>
+                        <span class="kpi-value">3 / 3</span>
+                        <span class="kpi-sub" style="color: var(--color-low);">Healthy Replicas</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Zeek Engines</span>
+                        <span class="kpi-value">2 / 2</span>
+                        <span class="kpi-sub" style="color: var(--color-low);">Healthy Replicas</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Network Isolation</span>
+                        <span class="kpi-value" style="font-size: 24px;">Strict</span>
+                        <span class="kpi-sub">Ingress/Egress locked</span>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Kafka Pipeline</span>
+                        <span class="kpi-value" style="color: var(--color-low);">Connected</span>
+                        <span class="kpi-sub">tenant-client-a-logs</span>
+                    </div>
+                </div>
+
+                <!-- Temporary Alerts/Data Table -->
+                <div class="dashboard-wrapper" style="padding: 1.5rem; overflow-y: auto; min-height: 400px;">
+                    <h3 style="margin-bottom: 1rem; color: var(--text-main); font-weight: 500;">Recent IDS Alerts & Detections</h3>
+                    <table class="alert-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Severity</th>
+                                <th>Source IP</th>
+                                <th>Destination IP</th>
+                                <th>Signature / Note</th>
+                                <th>Engine</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Instants ago</td>
+                                <td style="color: var(--color-critical); font-weight: 500;">High</td>
+                                <td>192.168.1.105</td>
+                                <td>10.0.0.50</td>
+                                <td>ET SCAN Potential SSH Scan</td>
+                                <td><span class="badge-engine" style="color: #f7556a;">SURICATA</span></td>
+                            </tr>
+                            <tr>
+                                <td>2 mins ago</td>
+                                <td style="color: var(--color-high); font-weight: 500;">Medium</td>
+                                <td>10.0.0.12</td>
+                                <td>8.8.8.8</td>
+                                <td>DNS Query to External Server</td>
+                                <td><span class="badge-engine" style="color: #3b82f6;">ZEEK</span></td>
+                            </tr>
+                            <tr>
+                                <td>15 mins ago</td>
+                                <td style="color: var(--color-critical); font-weight: 500;">High</td>
+                                <td>203.0.113.45</td>
+                                <td>10.0.0.100</td>
+                                <td>ET MALWARE Suspicious User-Agent</td>
+                                <td><span class="badge-engine" style="color: #f7556a;">SURICATA</span></td>
+                            </tr>
+                            <tr>
+                                <td>1 hour ago</td>
+                                <td style="color: var(--color-low); font-weight: 500;">Low</td>
+                                <td>10.0.0.200</td>
+                                <td>10.0.0.50</td>
+                                <td>Port Sweep Activity</td>
+                                <td><span class="badge-engine" style="color: #3b82f6;">ZEEK</span></td>
+                            </tr>
+                            <tr>
+                                <td>3 hours ago</td>
+                                <td style="color: var(--color-low); font-weight: 500;">Low</td>
+                                <td>10.0.0.150</td>
+                                <td>10.0.0.1</td>
+                                <td>ICMP Ping Sweep</td>
+                                <td><span class="badge-engine" style="color: #f7556a;">SURICATA</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -596,13 +720,20 @@
             // Switch Views
             const generic = document.getElementById('generic-container');
             const siem = document.getElementById('siem-container');
+            const ids = document.getElementById('ids-container');
 
             if (moduleName === 'siem') {
                 generic.classList.remove('active');
+                if (ids) ids.classList.remove('active');
                 siem.classList.add('active');
                 refreshSIEM();
+            } else if (moduleName === 'ids' && ids) {
+                generic.classList.remove('active');
+                siem.classList.remove('active');
+                ids.classList.add('active');
             } else {
                 siem.classList.remove('active');
+                if (ids) ids.classList.remove('active');
                 generic.classList.add('active');
                 updateDashboard(document.getElementById('main-frame'));
             }

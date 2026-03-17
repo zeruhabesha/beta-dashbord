@@ -10,10 +10,10 @@ HEADERS = {
 
 def create_index_pattern():
     patterns = [
-        ("tenant_01_unified", "tenant_01_*"),
-        ("tenant_01_siem", "tenant_01_siem*"),
-        ("tenant_01_ids", "tenant_01_ids*"),
-        ("tenant_01_edr", "tenant_01_edr*")
+        ("tenant-01-logs", "tenant-01-logs-*"),
+        ("tenant-01-siem", "tenant-01-siem-*"),
+        ("tenant-01-ids", "tenant-01-ids-*"),
+        ("tenant-01-edr", "tenant-01-edr-*")
     ]
     
     for pattern_id, title in patterns:

@@ -1,0 +1,83 @@
+--- WORKING (siem-home) ---
+[
+  {
+    "gridData": {
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 30,
+      "i": "1"
+    },
+    "panelIndex": "1",
+    "panelRefName": "panel_1"
+  }
+]
+
+--- BROKEN (siem-overview) ---
+[
+  {
+    "version": "7.10.0",
+    "gridData": {
+      "x": 0,
+      "y": 0,
+      "w": 12,
+      "h": 8,
+      "i": "1"
+    },
+    "panelIndex": "1",
+    "embeddableConfig": {},
+    "panelRefName": "panel_0"
+  },
+  {
+    "version": "7.10.0",
+    "gridData": {
+      "x": 12,
+      "y": 0,
+      "w": 12,
+      "h": 8,
+      "i": "2"
+    },
+    "panelIndex": "2",
+    "embeddableConfig": {},
+    "panelRefName": "panel_1"
+  },
+  {
+    "version": "7.10.0",
+    "gridData": {
+      "x": 24,
+      "y": 0,
+      "w": 24,
+      "h": 8,
+      "i": "3"
+    },
+    "panelIndex": "3",
+    "embeddableConfig": {},
+    "panelRefName": "panel_2"
+  },
+  {
+    "version": "7.10.0",
+    "gridData": {
+      "x": 0,
+      "y": 8,
+      "w": 48,
+      "h": 15,
+      "i": "4"
+    },
+    "panelIndex": "4",
+    "embeddableConfig": {},
+    "panelRefName": "panel_3"
+  },
+  {
+    "version": "7.10.0",
+    "gridData": {
+      "x": 0,
+      "y": 23,
+      "w": 48,
+      "h": 20,
+      "i": "5"
+    },
+    "panelIndex": "5",
+    "embeddableConfig": {},
+    "panelRefName": "panel_4"
+  }
+]

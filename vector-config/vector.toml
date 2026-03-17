@@ -1,0 +1,89 @@
+# Vector Configuration - Multi-Tenant Kafka → OpenSearch
+# Replaces Logstash. Consumes ALL tenant Kafka topics ending in "-log"
+# and routes each to its own daily OpenSearch index.
+
+# ─────────────────────────────────────────────
+# SOURCE: Kafka (all tenant log topics)
+# ─────────────────────────────────────────────
+[sources.tenant_logs]
+type              = "kafka"
+bootstrap_servers = "carey-unpermeating-adena.ngrok-free.dev:443"
+group_id          = "vector-tenant-consumer"
+topics            = ["^.*-log$"]
+auto_offset_reset = "latest"
+
+[sources.tenant_logs.tls]
+enabled = true
+
+# ─────────────────────────────────────────────
+# TRANSFORM: Extract tenant_id + normalize fields
+# ─────────────────────────────────────────────
+[transforms.enrich]
+type   = "remap"
+inputs = ["tenant_logs"]
+source = '''
+  # Extract tenant ID from topic name (strip trailing "-log")
+  .tenant_id = replace(string!(.metadata.kafka.topic), r'-log$', "")
+
+  # Normalize timestamp
+  if exists(.timestamp) {
+    parsed, err = parse_timestamp(string!(.timestamp), format: "%+")
+    if err == null {
+      .timestamp = parsed
+    } else {
+      .timestamp = now()
+    }
+  } else {
+    .timestamp = now()
+  }
+
+  # Add pipeline metadata
+  .data_source  = "kafka"
+  .ingest_time  = now()
+
+  # Map severity string → numeric
+  .severity_num = 0
+  if exists(.severity) {
+    sev = string!(.severity)
+    if sev == "critical"    { .severity_num = 5 }
+    if sev == "high"        { .severity_num = 4 }
+    if sev == "medium"      { .severity_num = 3 }
+    if sev == "low"         { .severity_num = 2 }
+    if sev == "info"        { .severity_num = 1 }
+  }
+
+  # Uppercase file hashes for consistency (EDR events)
+  if exists(.file_hash) {
+    .file_hash = upcase(string!(.file_hash))
+  }
+
+  # Convert numeric fields
+  if exists(.process_id)   { .process_id,   _ = to_int(.process_id)   }
+  if exists(.signature_id) { .signature_id, _ = to_int(.signature_id) }
+
+  # Build the daily index name: acme-corp-logs-2026.03.13
+  .index_name = .tenant_id + "-logs-" + format_timestamp!(now(), format: "%Y.%m.%d")
+'''
+
+# ─────────────────────────────────────────────
+# SINK: OpenSearch (per-tenant dynamic index)
+# ─────────────────────────────────────────────
+[sinks.opensearch]
+type              = "elasticsearch"
+inputs            = ["enrich"]
+endpoints         = ["http://opensearch-node1:9200"]
+mode              = "bulk"
+bulk.index        = "{{ index_name }}"
+bulk.action       = "index"
+healthcheck.enabled = true
+
+# ─────────────────────────────────────────────
+# METRICS: Prometheus endpoint for observability
+# ─────────────────────────────────────────────
+[sources.internal_metrics]
+type = "internal_metrics"
+
+[sinks.prometheus]
+type    = "prometheus_exporter"
+inputs  = ["internal_metrics"]
+address = "0.0.0.0:9598"

@@ -27,12 +27,12 @@ for i in range(100):
         "description": f"SIEM security event #{i+1}",
         "compliance_framework": random.choice(frameworks)
     }
-    siem_bulk.append(json.dumps({"index": {"_index": f"siem-events-{date_str}"}}))
+    siem_bulk.append(json.dumps({"index": {"_index": f"tenant-01-siem-{date_str}"}}))
     siem_bulk.append(json.dumps(event))
 
 siem_data = "\n".join(siem_bulk) + "\n"
 response = requests.post(f"{base_url}/_bulk", data=siem_data, headers={"Content-Type": "application/x-ndjson"})
-print(f"  ✓ Created 100 SIEM events in siem-events-{date_str}")
+print(f"  ✓ Created 100 SIEM events in tenant-01-siem-{date_str}")
 
 # IDS Team Data
 print("\nCreating IDS team data...")
@@ -54,12 +54,12 @@ for i in range(100):
         "description": f"IDS network event #{i+1}",
         "signature_id": random.randint(1000, 9999)
     }
-    ids_bulk.append(json.dumps({"index": {"_index": f"ids-traffic-{date_str}"}}))
+    ids_bulk.append(json.dumps({"index": {"_index": f"tenant-01-ids-{date_str}"}}))
     ids_bulk.append(json.dumps(event))
 
 ids_data = "\n".join(ids_bulk) + "\n"
 response = requests.post(f"{base_url}/_bulk", data=ids_data, headers={"Content-Type": "application/x-ndjson"})
-print(f"  ✓ Created 100 IDS events in ids-traffic-{date_str}")
+print(f"  ✓ Created 100 IDS events in tenant-01-ids-{date_str}")
 
 # EDR Team Data
 print("\nCreating EDR team data...")
@@ -80,12 +80,12 @@ for i in range(100):
         "description": f"EDR endpoint event #{i+1}",
         "threat_score": random.randint(0, 100)
     }
-    edr_bulk.append(json.dumps({"index": {"_index": f"edr-endpoints-{date_str}"}}))
+    edr_bulk.append(json.dumps({"index": {"_index": f"tenant-01-edr-{date_str}"}}))
     edr_bulk.append(json.dumps(event))
 
 edr_data = "\n".join(edr_bulk) + "\n"
 response = requests.post(f"{base_url}/_bulk", data=edr_data, headers={"Content-Type": "application/x-ndjson"})
-print(f"  ✓ Created 100 EDR events in edr-endpoints-{date_str}")
+print(f"  ✓ Created 100 EDR events in tenant-01-edr-{date_str}")
 
 # Create Index Patterns
 print("\nCreating index patterns...")
@@ -97,9 +97,9 @@ headers = {
 }
 
 patterns = [
-    ("siem-events-*", "SIEM Events"),
-    ("ids-traffic-*", "IDS Traffic"),
-    ("edr-endpoints-*", "EDR Endpoints")
+    ("tenant-01-siem-*", "SIEM Events"),
+    ("tenant-01-ids-*", "IDS Traffic"),
+    ("tenant-01-edr-*", "EDR Endpoints")
 ]
 
 for pattern_id, title in patterns:
@@ -111,6 +111,6 @@ for pattern_id, title in patterns:
         print(f"  {pattern_id} pattern already exists")
 
 print("\nDone! Each team has separate data:")
-print("  - SIEM: siem-events-* (100 events)")
-print("  - IDS: ids-traffic-* (100 events)")
-print("  - EDR: edr-endpoints-* (100 events)")
+print("  - SIEM: tenant-01-siem-* (100 events)")
+print("  - IDS: tenant-01-ids-* (100 events)")
+print("  - EDR: tenant-01-edr-* (100 events)")

@@ -99,6 +99,12 @@ export const MODULE_CONFIG = {
                 ]
             },
             {
+                category: "Management",
+                items: [
+                    { id: 'tenants', label: 'Tenant Management', icon: Server },
+                ]
+            },
+            {
                 category: "Analysis Tools",
                 items: [
                     { id: 'discover', label: 'Packet Check (Discover)', icon: Compass },
@@ -164,32 +170,17 @@ export const MODULE_CONFIG = {
                 ]
             },
             {
-                category: "SIEM Operations",
+                category: "Security Operations",
                 items: [
                     { id: 'siem-events', label: 'Security Events', icon: ShieldAlert },
                     { id: 'malware', label: 'Malware Detection', icon: AlertTriangle },
                     { id: 'mitre', label: 'MITRE ATT&CK', icon: Shield },
-                ]
-            },
-            {
-                category: "Network Security (IDS/IPS)",
-                items: [
                     { id: 'ids-alerts', label: 'Intrusion Alerts', icon: Bell },
                     { id: 'blocked', label: 'Blocked Threats', icon: Lock },
                     { id: 'maps', label: 'Geo Attack Map', icon: MapIcon },
-                ]
-            },
-            {
-                category: "Endpoint Security (EDR)",
-                items: [
                     { id: 'endpoints', label: 'Endpoint Status', icon: Server },
                     { id: 'active-threats', label: 'Active Threats', icon: Zap },
                     { id: 'isolation', label: 'Host Isolation', icon: Monitor },
-                ]
-            },
-            {
-                category: "Compliance & Threat Intel",
-                items: [
                     { id: 'hunting', label: 'Threat Hunting', icon: Target },
                     { id: 'pci', label: 'PCI DSS', icon: CreditCard },
                     { id: 'gdpr', label: 'GDPR', icon: Lock },

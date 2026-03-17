@@ -150,28 +150,29 @@ def main():
     # 1. Define Visualizations (ID, Config) to create
     visualizations = [
         # Unified
-        ("unified-total", get_metric_vis("Total Events", "tenant_01_*")),
-        ("unified-severity", get_pie_vis("Severity Distribution", "tenant_01_*", "severity.keyword")),
-        ("unified-sources", get_bar_vis("Top Data Sources", "tenant_01_*", "data_source.keyword")),
-        ("unified-table", get_table_vis("Recent Events", "tenant_01_*", ["source_ip.keyword"])),
+        ("unified-total", get_metric_vis("Total Events", "tenant-01-*")),
+        ("unified-severity", get_pie_vis("Severity Distribution", "tenant-01-*", "severity.keyword")),
+        ("unified-sources", get_bar_vis("Top Data Sources", "tenant-01-*", "data_source.keyword")),
+        ("unified-table", get_table_vis("Recent Events", "tenant-01-*", ["source_ip.keyword"])),
         
         # SIEM
-        ("siem-count", get_metric_vis("Total SIEM Events", "tenant_01_siem*")),
-        ("siem-types", get_bar_vis("Event Types", "tenant_01_siem*", "event_type.keyword")),
-        ("siem-severity", get_pie_vis("SIEM Severity", "tenant_01_siem*", "severity.keyword")),
-        ("siem-table", get_table_vis("SIEM Logs", "tenant_01_siem*", ["event_type.keyword"])),
+        ("siem-count", get_metric_vis("Total SIEM Events", "tenant-01-siem*")),
+        ("siem-types", get_bar_vis("Event Types", "tenant-01-siem*", "event_type.keyword")),
+        ("siem-severity", get_pie_vis("SIEM Severity", "tenant-01-siem*", "severity.keyword")),
+        ("siem-table", get_table_vis("SIEM Logs", "tenant-01-siem*", ["event_type.keyword"])),
         
         # IDS
-        ("ids-count", get_metric_vis("IDS Alerts", "tenant_01_ids*")),
-        ("ids-attacks", get_bar_vis("Top Attack Types", "tenant_01_ids*", "attack_type.keyword")),
-        ("ids-action", get_pie_vis("Action Taken", "tenant_01_ids*", "action.keyword")),
-        ("ids-table", get_table_vis("IDS Alerts Table", "tenant_01_ids*", ["attack_type.keyword"])),
+        ("ids-count", get_metric_vis("Total Alerts", "tenant-01-logs-*")),
+        ("ids-signatures", get_bar_vis("Top Signatures", "tenant-01-logs-*", "alert.signature.keyword")),
+        ("ids-event-types", get_pie_vis("Event Types", "tenant-01-logs-*", "event_type.keyword")),
+        ("ids-dest-ips", get_bar_vis("Top Target IPs", "tenant-01-logs-*", "dest_ip.keyword")),
+        ("ids-table", get_table_vis("IDS Alerts Table", "tenant-01-logs-*", ["alert.signature.keyword"])),
         
         # EDR
-        ("edr-count", get_metric_vis("EDR Detections", "tenant_01_edr*")),
-        ("edr-threats", get_bar_vis("Threat Types", "tenant_01_edr*", "threat_type.keyword")),
-        ("edr-status", get_pie_vis("Remediation Status", "tenant_01_edr*", "status.keyword")),
-        ("edr-table", get_table_vis("EDR Detections Table", "tenant_01_edr*", ["threat_type.keyword"])),
+        ("edr-count", get_metric_vis("EDR Detections", "tenant-01-edr*")),
+        ("edr-threats", get_bar_vis("Threat Types", "tenant-01-edr*", "threat_type.keyword")),
+        ("edr-status", get_pie_vis("Remediation Status", "tenant-01-edr*", "status.keyword")),
+        ("edr-table", get_table_vis("EDR Detections Table", "tenant-01-edr*", ["threat_type.keyword"])),
     ]
     
     # Create all visualizations
@@ -186,8 +187,7 @@ def main():
                 "searchSourceJSON": json.dumps({
                     "query": {"query": "", "language": "kuery"},
                     "filter": [],
-                    # We reference tenant_01_* for simplicity, usually needs ID but names often work if ID matches name
-                    "index": "tenant_01_unified" if "unified" in vis_id else f"tenant_01_{vis_id.split('-')[0]}" 
+                    "index": "tenant-01-logs"
                 })
             }
         }
@@ -203,9 +203,10 @@ def main():
         ("siem-mitre", "MITRE ATT&CK", ["siem-types", "siem-table"]),
         ("siem-hunting", "Threat Hunting", ["siem-table", "siem-count"]),
         
-        ("ids-home", "IDS / IPS Analysis", ["ids-count", "ids-attacks", "ids-action", "ids-table"]),
-        ("ids-ids-alerts", "Intrusion Alerts", ["ids-count", "ids-table", "ids-attacks"]),
-        ("ids-blocked", "Blocked Threats", ["ids-action", "ids-table"]),
+        ("ids-home", "IDS / IPS Analysis", ["ids-count", "ids-event-types", "ids-signatures", "ids-table"]),
+        ("ids-traffic", "Traffic Overview", ["ids-event-types", "ids-dest-ips", "ids-table"]),
+        ("ids-ids-alerts", "Intrusion Alerts", ["ids-count", "ids-table", "ids-signatures"]),
+        ("ids-blocked", "Blocked Threats", ["ids-signatures", "ids-table"]),
         
         ("edr-home", "EDR Analysis", ["edr-count", "edr-threats", "edr-status", "edr-table"]),
         ("edr-active-threats", "Active Threats", ["edr-threats", "edr-table"]),

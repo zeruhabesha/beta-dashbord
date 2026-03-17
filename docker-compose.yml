@@ -30,6 +30,7 @@ services:
       - "5601:5601"
     volumes:
       - opensearch-dashboards-data:/usr/share/opensearch-dashboards/data
+      - ./opensearch-dashboards-config/opensearch_dashboards.yml:/usr/share/opensearch-dashboards/config/opensearch_dashboards.yml
     depends_on:
       - opensearch
     networks:
@@ -92,22 +93,40 @@ services:
     networks:
       - opensearch-net
 
-  logstash:
-    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
-    container_name: logstash
+  # ─── Vector (replaces Logstash) ─────────────────
+  vector:
+    image: timberio/vector:0.38.0-alpine
+    container_name: vector
     depends_on:
       - opensearch
       - kafka
     ports:
-      - "5044:5044"
-      - "9601:9600"
+      - "9598:9598"   # Prometheus metrics endpoint
     volumes:
-      - ./logstash-pipeline:/usr/share/logstash/pipeline
-      - logstash-data:/usr/share/logstash/data
+      - ./vector-config/vector.toml:/etc/vector/vector.toml:ro
+      - vector-data:/var/lib/vector
+    command: ["--config", "/etc/vector/vector.toml"]
     environment:
-      LS_JAVA_OPTS: "-Xmx512m -Xms512m"
+      VECTOR_LOG: "info"
     networks:
       - opensearch-net
+    restart: unless-stopped
+
+  # ─── Security Dashboard (Web UI) ────────────────
+  security-dashboard:
+    build:
+      context: ./beta-security-dashboard
+    container_name: security-dashboard
+    depends_on:
+      - opensearch
+    ports:
+      - "8080:80"
+    networks:
+      - opensearch-net
+    environment:
+      - VITE_OPENSEARCH_URL=http://localhost:5601
+      - VITE_KAFKA_UI_URL=http://localhost:9090
+    restart: unless-stopped
 
 networks:
   opensearch-net:
@@ -119,4 +138,4 @@ volumes:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
-  logstash-data:
+  vector-data:

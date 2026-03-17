@@ -90,6 +90,16 @@ def generate_siem_event(tenant, timestamp):
 
 def generate_ids_event(tenant, timestamp):
     """Generate an IDS/IPS event"""
+    suricata_mode = random.choice(['IDS', 'IPS'])
+    ml_confidence = random.uniform(0.6, 0.99)
+    # Action logic based on confidence tiers in all_togather.yaml
+    if ml_confidence >= 0.85:
+        ml_action = 'drop'
+    elif ml_confidence >= 0.70:
+        ml_action = 'alert'
+    else:
+        ml_action = 'logged'
+
     return {
         '@timestamp': timestamp.isoformat(),
         'tenant': tenant,
@@ -103,7 +113,10 @@ def generate_ids_event(tenant, timestamp):
         'source_port': random.randint(1024, 65535),
         'dest_port': random.choice([80, 443, 22, 3389, 3306, 5432]),
         'protocol': random.choice(['TCP', 'UDP', 'ICMP']),
-        'action': 'blocked',
+        'action': ml_action if suricata_mode == 'IPS' else 'logged',
+        'ml_confidence': ml_confidence,
+        'ml_action': ml_action,
+        'suricata_mode': suricata_mode,
         'bytes_in': random.randint(100, 10000),
         'bytes_out': random.randint(100, 10000)
     }
@@ -145,13 +158,13 @@ def bulk_index_events(tenant, num_events=1000, days_back=7):
         
         if event_type == 'siem':
             event = generate_siem_event(tenant, timestamp)
-            index_name = f"{tenant.lower()}_siem-{timestamp.strftime('%Y.%m.%d')}"
+            index_name = f"{tenant.lower()}-siem-{timestamp.strftime('%Y.%m.%d')}"
         elif event_type == 'ids':
             event = generate_ids_event(tenant, timestamp)
-            index_name = f"{tenant.lower()}_ips-{timestamp.strftime('%Y.%m.%d')}"
+            index_name = f"{tenant.lower()}-ids-{timestamp.strftime('%Y.%m.%d')}"
         else:
             event = generate_edr_event(tenant, timestamp)
-            index_name = f"{tenant.lower()}_edr-{timestamp.strftime('%Y.%m.%d')}"
+            index_name = f"{tenant.lower()}-edr-{timestamp.strftime('%Y.%m.%d')}"
         
         actions.append({
             '_index': index_name,
@@ -167,7 +180,7 @@ def create_index_templates():
     """Create index templates for SIEM, IDS, and EDR"""
     templates = {
         'siem-template': {
-            'index_patterns': ['*_siem-*'],
+            'index_patterns': ['*-siem-*'],
             'template': {
                 'settings': {
                     'number_of_shards': 1,
@@ -191,8 +204,8 @@ def create_index_templates():
                 }
             }
         },
-        'ips-template': {
-            'index_patterns': ['*_ips-*'],
+        'ids-template': {
+            'index_patterns': ['*-ids-*'],
             'template': {
                 'settings': {
                     'number_of_shards': 1,
@@ -221,7 +234,7 @@ def create_index_templates():
             }
         },
         'edr-template': {
-            'index_patterns': ['*_edr-*'],
+            'index_patterns': ['*-edr-*'],
             'template': {
                 'settings': {
                     'number_of_shards': 1,
@@ -272,7 +285,7 @@ def main():
     total_failed = 0
     
     for tenant in TENANTS:
-        success, failed = bulk_index_events(tenant, num_events=5000, days_back=7)
+        success, failed = bulk_index_events(tenant, num_events=500, days_back=7)
         total_success += success
         total_failed += len(failed)
     

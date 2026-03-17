@@ -1,0 +1,599 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# TenantIDS — Complete CRD Reference
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# This file is a comprehensive reference of EVERY configurable field in the
+# TenantIDS Custom Resource Definition (CRD). It is intended as a guide for
+# frontend developers building dashboard UI to create/edit tenant definitions.
+#
+# HOW TO READ THIS FILE:
+#   • Every field has a comment explaining its purpose, type, constraints,
+#     and default value.
+#   • Fields marked [REQUIRED] must be provided by the user.
+#   • Fields marked [OPTIONAL] can be omitted; the operator will use defaults.
+#   • Fields marked [CONDITIONAL] are required only under specific conditions.
+#   • Values shown are realistic examples — not placeholders.
+#
+# API VERSION:  ids.betatech.com/v1alpha1
+# RESOURCE:     TenantIDS (cluster-scoped)
+# SHORT NAMES:  tids, tenantids
+# ══════════════════════════════════════════════════════════════════════════════
+
+apiVersion: ids.betatech.com/v1alpha1
+kind: TenantIDS
+metadata:
+  # The Kubernetes object name (cluster-scoped, must be unique across all tenants).
+  # Convention: use the same value as spec.tenantId or a descriptive name.
+  name: my-tenant
+
+spec:
+  # ──────────────────────────────────────────────────────────────────────────
+  # 1. TENANT IDENTITY  [REQUIRED]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Unique identifier for this tenant. This value drives all naming:
+  #   • Namespace created: "tenant-<tenantId>"
+  #   • Kafka default topic: "tenant-<tenantId>-logs"
+  #   • Labels on all child resources
+  #
+  # Constraints:
+  #   - Must match: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+  #   - Maximum length: 63 characters
+  #   - Examples: "bank-secure", "ml-tenant", "acme-corp"
+  tenantId: "my-tenant"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 2. SURICATA — Intrusion Detection / Prevention System  [OPTIONAL]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Deploys a Suricata StatefulSet pod with sidecars (Telegraf, config-reload,
+  # Fluent Bit, and optionally suricata-ctrl for ML enforcement).
+  # Omit this entire section if the tenant does not need Suricata.
+  suricata:
+
+    # ── Operational Mode ──────────────────────────────────────────────────
+    # Determines how Suricata inspects traffic.
+    #
+    # "IDS" (default) — Passive detection. Suricata mirrors traffic on eth0.
+    #                    No network attachments required.
+    # "IPS"           — Inline prevention. Suricata sits between two network
+    #                    interfaces (WAN ↔ LAN) and can drop packets.
+    #                    Requires: ipsNetworking section below.
+    #
+    # UI: Render as a toggle or dropdown with two options.
+    # Allowed values: IDS, IPS
+    # Default: IDS
+    mode: "IDS"
+
+    # ── Replicas ──────────────────────────────────────────────────────────
+    # Number of Suricata pods to run (StatefulSet replicas).
+    # Higher replicas = more capacity for traffic inspection.
+    #
+    # Type: integer
+    # Min: 0  |  Max: 20  |  Default: 2
+    # UI: Render as a number input with stepper (0–20).
+    replicas: 2
+
+    # ── Container Image ───────────────────────────────────────────────────
+    # The Docker image for the Suricata container.
+    # Default: "jasonish/suricata:latest"
+    # Override when using a custom-built Suricata image.
+    #
+    # UI: Render as a text input with the default pre-filled.
+    image: "jasonish/suricata:latest"
+
+    # ── Rule Sets ─────────────────────────────────────────────────────────
+    # List of Suricata rule files to load (in addition to the built-in
+    # default.rules). These are referenced by filename and must be available
+    # in the Suricata container or ConfigMap.
+    #
+    # Examples: emerging-threats.rules, custom-detection.rules
+    # Min items: 1 (if provided)
+    #
+    # UI: Render as a dynamic list — the user can add/remove rule file names.
+    #     Show as tag-style chips or an editable list.
+    ruleSets:
+      - emerging-threats.rules
+      - custom-detection.rules
+
+    # ── Resource Requests & Limits ────────────────────────────────────────
+    # CPU and memory allocation for the Suricata container.
+    # If omitted, the operator uses sensible defaults.
+    #
+    # UI: Render as a collapsible "Resources" panel with 4 text inputs.
+    #     Show request/limit pairs side by side.
+    resources:
+      # CPU request — guaranteed minimum CPU (e.g. "500m" = 0.5 cores)
+      # Default: "500m"
+      cpu: "500m"
+
+      # Memory request — guaranteed minimum memory
+      # Default: "1Gi"
+      memory: "1Gi"
+
+      # CPU limit — maximum CPU the container can use
+      # Optional, leave empty for no upper cap
+      cpuLimit: "2"
+
+      # Memory limit — maximum memory (OOM-killed if exceeded)
+      # Optional, leave empty for no upper cap
+      memoryLimit: "4Gi"
+
+    # ── Advanced Suricata Configuration ───────────────────────────────────
+    # Fine-tuning options for Suricata's network variables and behavior.
+    # Most users won't need to change these.
+    #
+    # UI: Render inside a collapsible "Advanced Settings" accordion.
+    config:
+      # HOME_NET — the internal network CIDR that Suricata considers "home"
+      # Default: "10.0.0.0/8"
+      # UI: Text input with CIDR validation
+      homeNet: "10.0.0.0/8"
+
+      # EXTERNAL_NET — what is considered external traffic
+      # Default: "!$HOME_NET"  (everything not in HOME_NET)
+      # UI: Text input, usually left at default
+      externalNet: "!$HOME_NET"
+
+      # AF-Packet interfaces to monitor (IDS mode only)
+      # Usually auto-configured; only override for multi-NIC setups
+      # UI: Dynamic list of interface names
+      afPacketInterfaces:
+        - "eth0"
+
+      # How often Suricata reloads its rule files
+      # Default: "5m"  (5 minutes)
+      # UI: Duration input or dropdown (1m, 5m, 15m, 30m)
+      ruleReloadInterval: "5m"
+
+      # Legacy IPS toggle (prefer using mode: IPS instead)
+      # Default: false
+      enableIPSMode: false
+
+    # ── IPS Networking ────────────────────────────────────────────────────
+    # [CONDITIONAL] Required when mode is "IPS".
+    # Defines the Multus network attachments for inline traffic inspection.
+    #
+    # UI: Show this section ONLY when mode is set to "IPS".
+    #     Render as exactly 2 network attachment inputs.
+    ipsNetworking:
+      # List of exactly 2 Multus NetworkAttachmentDefinition references.
+      # Order matters:
+      #   [0] = WAN (ingress / external-facing interface)
+      #   [1] = LAN (egress / internal-facing interface)
+      #
+      # Format options:
+      #   • "nad-name"                (local — same namespace as the tenant)
+      #   • "namespace/nad-name"      (cross-namespace — e.g. shared global NADs)
+      #
+      # Constraints: exactly 2 items required
+      # UI: Two text inputs labeled "WAN Attachment" and "LAN Attachment"
+      networkAttachments:
+        - "default/global-wan"
+        - "default/global-lan"
+
+      # Static IP for traffic steering (optional, Whereabouts CNI)
+      # If set, this IP is assigned to the first (WAN) attachment.
+      # Format: CIDR notation (e.g. "192.168.1.50/24")
+      # UI: Text input with CIDR validation. Label: "Static IP (optional)"
+      staticIP: "192.168.1.50/24"
+
+    # ── Auto Scaling ──────────────────────────────────────────────────────
+    # Enables Horizontal Pod Autoscaler (HPA) for the Suricata StatefulSet.
+    #
+    # UI: Render as a toggle. When enabled, show min/max replicas and CPU target.
+    autoScaling:
+      # Enable/disable HPA
+      # Default: false
+      enabled: false
+
+      # Minimum replicas (HPA won't scale below this)
+      # Min: 1  |  Default: 1
+      minReplicas: 1
+
+      # Maximum replicas (HPA won't scale above this)
+      # Min: 1  |  Max: 50  |  Default: 10
+      maxReplicas: 10
+
+      # Target average CPU utilization percentage that triggers scaling
+      # Min: 1  |  Max: 100  |  Default: 70
+      # UI: Slider or number input (1–100)
+      targetCPUUtilizationPercentage: 70
+
+    # ── ML Enforcement (suricata-ctrl Sidecar) ────────────────────────────
+    # Enables ML-driven dynamic IP blocking. When enabled, a sidecar
+    # container (suricata-ctrl) is added to the Suricata pod. It:
+    #   1. Consumes ML threat predictions from Kafka
+    #   2. Resolves enforcement decisions via confidence tiers
+    #   3. Pushes malicious IPs into Suricata's dataset via Unix socket
+    #   4. Publishes enforcement audit events back to Kafka
+    #
+    # UI: Render as a feature toggle. When enabled, expand to show all sub-fields.
+    #     This is an ADVANCED feature — consider placing it under an "ML" tab.
+    mlEnforcement:
+      # Enable/disable the ML enforcement sidecar
+      # Default: false
+      # UI: Toggle switch — primary control for this section
+      enabled: true
+
+      # Container image for the suricata-ctrl sidecar
+      # Default: "tesfuman/suricata-ctrl:v1.0"
+      # UI: Text input (most users keep the default)
+      image: "tesfuman/suricata-ctrl:latest"
+
+      # Kafka topic to consume ML predictions from
+      # Default: "ml-decisions.<tenantId>" (auto-generated if empty)
+      # UI: Text input with placeholder showing the auto-generated default
+      mlTopic: "ml-decisions.my-tenant"
+
+      # Kafka topic for enforcement audit events
+      # Default: "enforcement-audit.<tenantId>" (auto-generated if empty)
+      # UI: Text input with placeholder showing the auto-generated default
+      auditTopic: "enforcement-audit.my-tenant"
+
+      # ── Confidence Tiers ──────────────────────────────────────────────
+      # Define enforcement behavior at different ML confidence levels.
+      # ORDER MATTERS: list from highest confidence to lowest.
+      # When an ML prediction arrives, the FIRST matching tier is applied.
+      #
+      # UI: Render as a dynamic table or card list with 3 columns per row:
+      #     | Min Confidence | Block Duration (hrs) | Action        |
+      #     |     0.95       |        24            | drop          |
+      #     |     0.85       |        12            | drop          |
+      #     |     0.70       |         6            | alert (only)  |
+      #
+      #     Provide "Add Tier" and "Remove" buttons for each row.
+      #     Sort by minConfidence descending is recommended.
+      confidenceTiers:
+        - # Minimum confidence score for this tier (0.0 to 1.0)
+          # Type: float
+          # UI: Number input or slider (0.00 – 1.00, step 0.01)
+          minConfidence: 0.95
+
+          # How long to block the IP (in hours) when this tier matches
+          # Type: float
+          # UI: Number input (allows decimals, e.g. 0.5 for 30 minutes)
+          blockDurationHours: 24
+
+          # Enforcement action:
+          #   "drop"  — actively blocks the IP in Suricata (traffic is dropped)
+          #   "alert" — only logs a warning, does NOT block the IP
+          # Allowed values: drop, alert
+          # UI: Dropdown / radio buttons
+          action: "drop"
+
+        - minConfidence: 0.85
+          blockDurationHours: 12
+          action: "drop"
+
+        - minConfidence: 0.70
+          blockDurationHours: 6
+          action: "alert"
+
+      # ── Tenant-Level Overrides ────────────────────────────────────────
+      # Global minimum confidence — predictions below this are ignored entirely
+      # Type: float (0.0 – 1.0)
+      # Default: none (all predictions are evaluated against tiers)
+      # UI: Number input (0.00 – 1.00). Label: "Minimum Confidence Threshold"
+      minConfidence: 0.80
+
+      # Maximum block duration cap — no block can exceed this duration
+      # Type: float (hours)
+      # Default: none (no cap)
+      # UI: Number input (hours). Label: "Max Block Duration (hours)"
+      maxBlockDurationHours: 48
+
+      # Deduplication window — IPs seen within this window with the same
+      # or lower confidence score are suppressed (not re-blocked)
+      # Type: integer (seconds)
+      # Default: 300 (5 minutes)
+      # UI: Number input (seconds). Label: "Deduplication Window (seconds)"
+      deduplicationWindowSeconds: 300
+
+      # Resource limits for the suricata-ctrl sidecar container
+      # UI: Same layout as the main Suricata resources above
+      resources:
+        cpu: "100m"
+        memory: "128Mi"
+        cpuLimit: "500m"
+        memoryLimit: "256Mi"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 3. ZEEK — Network Analysis Engine  [OPTIONAL]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Deploys a Zeek StatefulSet pod with sidecars (Fluent Bit for log shipping).
+  # Zeek provides deep protocol analysis and network metadata extraction.
+  # Omit this entire section if the tenant does not need Zeek.
+  zeek:
+
+    # ── Replicas ──────────────────────────────────────────────────────────
+    # Number of Zeek pods to run.
+    # Type: integer
+    # Min: 0  |  Max: 20  |  Default: 1
+    # UI: Number input with stepper (0–20)
+    replicas: 1
+
+    # ── Container Image ───────────────────────────────────────────────────
+    # The Docker image for the Zeek container.
+    # Default: "zeek/zeek:latest"
+    # Override for custom builds (e.g. with FlowMeter for ML feature extraction)
+    # Example custom: "tesfuman/nf-zeek:v1.0"
+    #
+    # UI: Text input with the default pre-filled.
+    image: "zeek/zeek:latest"
+
+    # ── Policy Scripts ────────────────────────────────────────────────────
+    # List of Zeek policy scripts to load.
+    # These extend Zeek's default analysis with custom detection logic.
+    #
+    # UI: Dynamic list — user can add/remove script filenames.
+    policyScripts:
+      - conn-analysis.zeek
+      - dns-detection.zeek
+
+    # ── Resource Requests & Limits ────────────────────────────────────────
+    # Same structure as Suricata resources.
+    # UI: Collapsible "Resources" panel with 4 text inputs.
+    resources:
+      cpu: "500m"
+      memory: "1Gi"
+      cpuLimit: "1"
+      memoryLimit: "2Gi"
+
+    # ── Advanced Zeek Configuration ───────────────────────────────────────
+    # UI: Collapsible "Advanced Settings" accordion.
+    config:
+      # Network interface to monitor
+      # Default: "eth0"
+      # UI: Text input
+      interface: "eth0"
+
+      # Log rotation interval
+      # Default: "1h"
+      # UI: Duration dropdown (15m, 30m, 1h, 6h, 12h, 24h)
+      logRotation: "1h"
+
+      # Enable extraction of files from monitored traffic
+      # Default: false
+      # UI: Toggle
+      enableFileExtraction: false
+
+      # Seed value for reproducible randomization in Zeek scripts
+      # Default: none
+      # UI: Number input (optional, leave empty for random)
+      seedValue: 42
+
+    # ── Auto Scaling ──────────────────────────────────────────────────────
+    # Same structure as Suricata autoscaling.
+    # UI: Toggle with min/max/target fields.
+    autoScaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 70
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 4. LOGGING — Log Shipping & Kafka Integration  [OPTIONAL]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Configures Fluent Bit sidecar to ship Suricata and Zeek logs to Kafka.
+  # If omitted, defaults are applied automatically.
+  #
+  # UI: Render as a dedicated "Logging" tab or panel.
+  logging:
+
+    # ── Kafka Bootstrap Servers ───────────────────────────────────────────
+    # Address of the Kafka broker(s) for log shipping.
+    # Default: "kafka.kafka.svc.cluster.local:9092"
+    #
+    # UI: Text input. Label: "Kafka Bootstrap Servers"
+    #     Pre-fill with the default. Validate format: host:port
+    kafkaBootstrapServers: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+
+    # ── Kafka Topic ───────────────────────────────────────────────────────
+    # The Kafka topic where all logs (Suricata + Zeek) are shipped.
+    # Default: "tenant-<tenantId>-logs" (auto-generated if empty)
+    # Constraints: must match ^[a-zA-Z0-9._-]+$
+    #
+    # UI: Text input with placeholder showing the auto-generated default.
+    kafkaTopic: "my-tenant-security-logs"
+
+    # ── Log Level ─────────────────────────────────────────────────────────
+    # Fluent Bit logging verbosity.
+    # Allowed values: debug, info, warn, error
+    # Default: "info"
+    #
+    # UI: Dropdown with 4 options.
+    logLevel: "info"
+
+    # ── Buffer Size ───────────────────────────────────────────────────────
+    # Number of log entries buffered before flushing to Kafka.
+    # Larger buffers improve throughput, smaller improve latency.
+    #
+    # Type: integer
+    # Min: 100  |  Max: 1,000,000  |  Default: 10,000
+    # UI: Number input with validation.
+    bufferSize: 10000
+
+    # ── JSON Logs ─────────────────────────────────────────────────────────
+    # Enable JSON-formatted log output (recommended for structured logging).
+    # Default: true
+    #
+    # UI: Toggle switch
+    enableJSON: true
+
+    # ── Retention Days ────────────────────────────────────────────────────
+    # How many days to retain log data.
+    #
+    # Type: integer
+    # Min: 1  |  Max: 365  |  Default: 30
+    # UI: Number input or slider (1–365). Label: "Log Retention (days)"
+    retentionDays: 30
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 5. NETWORK — Traffic Policies & Isolation  [OPTIONAL]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Controls Kubernetes NetworkPolicies applied to the tenant namespace.
+  # Determines what traffic is allowed in/out of the tenant's pods.
+  #
+  # UI: Render as a "Network Policies" tab or panel.
+  network:
+
+    # ── Ingress CIDR ──────────────────────────────────────────────────────
+    # CIDR block defining allowed incoming traffic sources.
+    # Default: "0.0.0.0/0" (all traffic allowed)
+    # Constraints: valid CIDR notation
+    #
+    # UI: Text input with CIDR validation. Label: "Allowed Ingress CIDR"
+    ingressCIDR: "0.0.0.0/0"
+
+    # ── Egress CIDR ───────────────────────────────────────────────────────
+    # CIDR block defining allowed outgoing traffic destinations.
+    # Default: "0.0.0.0/0"
+    #
+    # UI: Text input with CIDR validation. Label: "Allowed Egress CIDR"
+    egressCIDR: "0.0.0.0/0"
+
+    # ── Enable Network Policies ───────────────────────────────────────────
+    # Whether to create Kubernetes NetworkPolicy resources.
+    # Set to false to disable all network isolation.
+    # Default: true
+    #
+    # UI: Toggle switch. Label: "Enable Network Policies"
+    enableNetworkPolicies: true
+
+    # ── Isolation Mode ────────────────────────────────────────────────────
+    # Level of network isolation between this tenant and others.
+    #
+    # "strict"   — Full isolation. Only explicitly allowed traffic passes.
+    # "moderate" — Partial isolation. Allows some inter-namespace communication.
+    # "disabled" — No isolation. All namespaces can communicate freely.
+    #
+    # Allowed values: strict, moderate, disabled
+    # Default: "strict"
+    # UI: Dropdown with 3 options.
+    isolationMode: "strict"
+
+    # ── Allowed Namespaces ────────────────────────────────────────────────
+    # List of Kubernetes namespaces that are allowed to communicate with
+    # this tenant's namespace. Only relevant when isolation is not "disabled".
+    #
+    # UI: Dynamic list — user adds namespace names.
+    allowedNamespaces:
+      - "monitoring"
+      - "kafka"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # 6. STORAGE — Persistent Volume Configuration  [OPTIONAL]
+  # ──────────────────────────────────────────────────────────────────────────
+  # Configures persistent storage for Suricata logs, Zeek data, and other
+  # stateful data. If omitted, defaults are applied.
+  #
+  # UI: Render as a "Storage" tab or collapsible panel.
+  storage:
+
+    # ── Enable PVC ────────────────────────────────────────────────────────
+    # Whether to create PersistentVolumeClaims for the tenant's pods.
+    # Default: true
+    #
+    # UI: Toggle switch. Label: "Enable Persistent Storage"
+    enablePVC: true
+
+    # ── Volume Size ───────────────────────────────────────────────────────
+    # Size of the persistent volume.
+    # Constraints: must match ^[0-9]+(Gi|Mi|G|M)$
+    # Default: "5Gi"
+    #
+    # UI: Text input with suffix dropdown (Mi, Gi). Label: "Volume Size"
+    size: "5Gi"
+
+    # ── Storage Class ─────────────────────────────────────────────────────
+    # Kubernetes StorageClass to use. If empty, the cluster default is used.
+    # Examples: "standard", "gp2", "fast-ssd"
+    #
+    # UI: Dropdown populated from available StorageClasses in the cluster.
+    #     Include an "(auto — cluster default)" option for empty value.
+    storageClassName: ""
+
+    # ── Access Mode ───────────────────────────────────────────────────────
+    # How the volume can be mounted by pods.
+    #
+    # "ReadWriteOnce" — Single node read/write (most common)
+    # "ReadOnlyMany"   — Multiple nodes read-only
+    # "ReadWriteMany"  — Multiple nodes read/write (requires NFS or similar)
+    #
+    # Allowed values: ReadWriteOnce, ReadOnlyMany, ReadWriteMany
+    # Default: "ReadWriteOnce"
+    # UI: Dropdown with 3 options.
+    accessMode: "ReadWriteOnce"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD UI LAYOUT GUIDE
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# Recommended tab/section layout for the tenant creation form:
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │  Tab 1: GENERAL                                                       │
+#   │  ├─ Tenant ID         [text input]         [REQUIRED]                 │
+#   │  ├─ Mode              [IDS / IPS toggle]   [REQUIRED]                 │
+#   │  └─ IPS Networking    [shown if IPS]       [CONDITIONAL]              │
+#   │       ├─ WAN Attachment  [text]                                       │
+#   │       ├─ LAN Attachment  [text]                                       │
+#   │       └─ Static IP       [text, optional]                             │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 2: SURICATA                                                      │
+#   │  ├─ Replicas          [number 0–20]                                   │
+#   │  ├─ Image             [text]                                          │
+#   │  ├─ Rule Sets         [dynamic list]                                  │
+#   │  ├─ Resources         [collapsible: cpu, memory, limits]              │
+#   │  ├─ Advanced Config   [collapsible: homeNet, externalNet, etc.]       │
+#   │  └─ Auto Scaling      [toggle + settings]                             │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 3: ZEEK                                                          │
+#   │  ├─ Replicas          [number 0–20]                                   │
+#   │  ├─ Image             [text]                                          │
+#   │  ├─ Policy Scripts    [dynamic list]                                  │
+#   │  ├─ Resources         [collapsible: cpu, memory, limits]              │
+#   │  ├─ Advanced Config   [collapsible: interface, logRotation, etc.]     │
+#   │  └─ Auto Scaling      [toggle + settings]                             │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 4: ML ENFORCEMENT                                                │
+#   │  ├─ Enabled           [toggle]                                        │
+#   │  ├─ Image             [text]                                          │
+#   │  ├─ ML Topic          [text]                                          │
+#   │  ├─ Audit Topic       [text]                                          │
+#   │  ├─ Confidence Tiers  [dynamic table]                                 │
+#   │  ├─ Min Confidence    [number 0.00–1.00]                              │
+#   │  ├─ Max Block Hours   [number]                                        │
+#   │  ├─ Dedup Window      [number, seconds]                               │
+#   │  └─ Resources         [collapsible]                                   │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 5: LOGGING                                                       │
+#   │  ├─ Kafka Servers     [text]                                          │
+#   │  ├─ Kafka Topic       [text]                                          │
+#   │  ├─ Log Level         [dropdown: debug/info/warn/error]               │
+#   │  ├─ Buffer Size       [number 100–1,000,000]                          │
+#   │  ├─ JSON Logs         [toggle]                                        │
+#   │  └─ Retention Days    [number 1–365]                                  │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 6: NETWORK                                                       │
+#   │  ├─ Ingress CIDR      [text, CIDR format]                             │
+#   │  ├─ Egress CIDR       [text, CIDR format]                             │
+#   │  ├─ Enable Policies   [toggle]                                        │
+#   │  ├─ Isolation Mode    [dropdown: strict/moderate/disabled]             │
+#   │  └─ Allowed Namespaces [dynamic list]                                 │
+#   ├─────────────────────────────────────────────────────────────────────────┤
+#   │  Tab 7: STORAGE                                                       │
+#   │  ├─ Enable PVC        [toggle]                                        │
+#   │  ├─ Volume Size       [text + unit dropdown]                          │
+#   │  ├─ Storage Class     [dropdown from cluster]                         │
+#   │  └─ Access Mode       [dropdown]                                      │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+# NOTES FOR FRONTEND DEVELOPERS:
+#   1. Only "tenantId" is truly required. Everything else has sensible defaults.
+#   2. Use conditional rendering — show IPS Networking only when mode=IPS,
+#      show ML Enforcement details only when enabled=true.
+#   3. Default values are documented above each field — pre-fill the form.
+#   4. Validation rules (min/max, regex, enums) are specified per field.
+#   5. The API is cluster-scoped (no namespace in metadata).
+#   6. After creation, the operator auto-creates namespace "tenant-<tenantId>".

@@ -1,0 +1,16 @@
+apiVersion: ids.betatech.com/v1alpha1
+kind: TenantIDS
+metadata:
+  name: tenant-kafka-test
+spec:
+  tenantId: kafka-test
+  # ... (suricata/zeek config can be minimal) ...
+  suricata:
+    replicas: 1
+  zeek:
+    replicas: 1
+  logging:
+    # CRITICAL: Since we are using port-forwarding, point to localhost
+    kafkaBootstrapServers: "my-cluster-kafka-bootstrap.kafka.svc:9092"
+    # Optional: Custom topic name (or let it default to tenant-kafka-test-logs)
+    kafkaTopic: "custom-security-topic"

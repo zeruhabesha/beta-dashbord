@@ -1,0 +1,100 @@
+﻿	sasl.login.refresh.buffer.seconds = 300
+	sasl.login.refresh.min.period.seconds = 60
+	sasl.login.refresh.window.factor = 0.8
+	sasl.login.refresh.window.jitter = 0.05
+	sasl.login.retry.backoff.max.ms = 10000
+	sasl.login.retry.backoff.ms = 100
+	sasl.mechanism = GSSAPI
+	sasl.oauthbearer.clock.skew.seconds = 30
+	sasl.oauthbearer.expected.audience = null
+	sasl.oauthbearer.expected.issuer = null
+	sasl.oauthbearer.jwks.endpoint.refresh.ms = 3600000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms = 10000
+	sasl.oauthbearer.jwks.endpoint.retry.backoff.ms = 100
+	sasl.oauthbearer.jwks.endpoint.url = null
+	sasl.oauthbearer.scope.claim.name = scope
+	sasl.oauthbearer.sub.claim.name = sub
+	sasl.oauthbearer.token.endpoint.url = null
+	security.protocol = PLAINTEXT
+	security.providers = null
+	send.buffer.bytes = 131072
+	session.timeout.ms = 10000
+	socket.connection.setup.timeout.max.ms = 30000
+	socket.connection.setup.timeout.ms = 10000
+	ssl.cipher.suites = null
+	ssl.enabled.protocols = [TLSv1.2, TLSv1.3]
+	ssl.endpoint.identification.algorithm = https
+	ssl.engine.factory.class = null
+	ssl.key.password = null
+	ssl.keymanager.algorithm = SunX509
+	ssl.keystore.certificate.chain = null
+	ssl.keystore.key = null
+	ssl.keystore.location = null
+	ssl.keystore.password = null
+	ssl.keystore.type = JKS
+	ssl.protocol = TLSv1.3
+	ssl.provider = null
+	ssl.secure.random.implementation = null
+	ssl.trustmanager.algorithm = PKIX
+	ssl.truststore.certificates = null
+	ssl.truststore.location = null
+	ssl.truststore.password = null
+	ssl.truststore.type = JKS
+	value.deserializer = class org.apache.kafka.common.serialization.StringDeserializer
+
+[2026-03-12T14:30:17,774][INFO ][org.apache.kafka.common.utils.AppInfoParser][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] Kafka version: 3.3.1
+[2026-03-12T14:30:17,774][INFO ][org.apache.kafka.common.utils.AppInfoParser][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] Kafka commitId: e23c59d00e687ff5
+[2026-03-12T14:30:17,774][INFO ][org.apache.kafka.common.utils.AppInfoParser][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] Kafka startTimeMs: 1773325817766
+[2026-03-12T14:30:17,780][INFO ][org.apache.kafka.clients.consumer.KafkaConsumer][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Subscribed to topic(s): siem-events, ids-events, edr-events
+[2026-03-12T14:30:17,830][INFO ][logstash.codecs.json     ][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] ECS compatibility is enabled but `target` option was not specified. This may cause fields to be set at the top-level of the event where they are likely to clash with the Elastic Common Schema. It is recommended to set the `target` option to avoid potential schema conflicts (if your data is ECS compliant or non-conflicting, feel free to ignore this message)
+[2026-03-12T14:30:19,614][INFO ][org.apache.kafka.clients.Metadata][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting the last seen epoch of partition siem-events-0 to 0 since the associated topicId changed from null to kQRdd7oKTR-lgFxA3E8Rcw
+[2026-03-12T14:30:19,615][INFO ][org.apache.kafka.clients.Metadata][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting the last seen epoch of partition edr-events-0 to 0 since the associated topicId changed from null to nqcr1sHETriV25aVxv1M9Q
+[2026-03-12T14:30:19,615][INFO ][org.apache.kafka.clients.Metadata][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting the last seen epoch of partition ids-events-0 to 0 since the associated topicId changed from null to xwyB_d-AQECtj5Dna6vZKA
+[2026-03-12T14:30:19,627][INFO ][org.apache.kafka.clients.Metadata][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Cluster ID: LQ2RghjiSGejDACqEWlpnQ
+[2026-03-12T14:30:19,639][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Discovered group coordinator kafka:9092 (id: 2147483646 rack: null)
+[2026-03-12T14:30:19,666][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] (Re-)joining group
+[2026-03-12T14:30:19,793][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Request joining group due to: need to re-join with the given member-id: logstash-0-174e79a3-7762-45a4-9d57-def13fa1148a
+[2026-03-12T14:30:19,794][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Request joining group due to: rebalance failed due to 'The group member needs to have a valid member id before actually entering a consumer group.' (MemberIdRequiredException)
+[2026-03-12T14:30:19,794][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] (Re-)joining group
+[2026-03-12T14:30:22,889][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Successfully joined group with generation Generation{generationId=1, memberId='logstash-0-174e79a3-7762-45a4-9d57-def13fa1148a', protocol='range'}
+[2026-03-12T14:30:22,895][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Finished assignment for group at generation 1: {logstash-0-174e79a3-7762-45a4-9d57-def13fa1148a=Assignment(partitions=[siem-events-0, edr-events-0, ids-events-0])}
+[2026-03-12T14:30:23,042][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Successfully synced group in generation Generation{generationId=1, memberId='logstash-0-174e79a3-7762-45a4-9d57-def13fa1148a', protocol='range'}
+[2026-03-12T14:30:23,043][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Notifying assignor about the new Assignment(partitions=[siem-events-0, edr-events-0, ids-events-0])
+[2026-03-12T14:30:23,049][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Adding newly assigned partitions: edr-events-0, ids-events-0, siem-events-0
+[2026-03-12T14:30:23,183][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Found no committed offset for partition siem-events-0
+[2026-03-12T14:30:23,184][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Found no committed offset for partition ids-events-0
+[2026-03-12T14:30:23,184][INFO ][org.apache.kafka.clients.consumer.internals.ConsumerCoordinator][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Found no committed offset for partition edr-events-0
+[2026-03-12T14:30:23,877][INFO ][org.apache.kafka.clients.consumer.internals.SubscriptionState][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting offset for partition siem-events-0 to position FetchPosition{offset=0, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[kafka:9092 (id: 1 rack: null)], epoch=0}}.
+[2026-03-12T14:30:23,878][INFO ][org.apache.kafka.clients.consumer.internals.SubscriptionState][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting offset for partition ids-events-0 to position FetchPosition{offset=0, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[kafka:9092 (id: 1 rack: null)], epoch=0}}.
+[2026-03-12T14:30:23,878][INFO ][org.apache.kafka.clients.consumer.internals.SubscriptionState][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Resetting offset for partition edr-events-0 to position FetchPosition{offset=0, offsetEpoch=Optional.empty, currentLeader=LeaderAndEpoch{leader=Optional[kafka:9092 (id: 1 rack: null)], epoch=0}}.
+{
+            "severity" => "critical",
+         "attack_type" => "SQL Injection",
+    "destination_port" => 80,
+           "@metadata" => {
+        "kafka" => {
+                     "topic" => "ids-events",
+                 "partition" => 0,
+                       "key" => nil,
+                    "offset" => 0,
+                 "timestamp" => 1773325573772,
+            "consumer_group" => "logstash-debug-newest"
+        }
+    },
+           "source_ip" => "10.0.0.1",
+            "protocol" => "TCP",
+        "signature_id" => 1234,
+          "@timestamp" => 2026-03-12T14:30:24.461621016Z,
+      "destination_ip" => "10.0.0.2",
+            "alert_id" => "test-789",
+         "source_port" => 54321,
+            "@version" => "1",
+      "signature_name" => "ET WEB_SERVER test",
+              "action" => "blocked",
+               "event" => {
+        "original" => "{\"alert_id\": \"test-789\", \"timestamp\": \"2026-03-12T16:00:00Z\", \"attack_type\": \"SQL Injection\", \"signature_id\": 1234, \"signature_name\": \"ET WEB_SERVER test\", \"source_ip\": \"10.0.0.1\", \"source_port\": 54321, \"destination_ip\": \"10.0.0.2\", \"destination_port\": 80, \"protocol\": \"TCP\", \"severity\": \"critical\", \"action\": \"blocked\"}"
+    },
+              "tenant" => "Tenant_01",
+           "timestamp" => "2026-03-12T16:00:00Z"
+}
+[2026-03-12T14:39:19,570][INFO ][org.apache.kafka.clients.NetworkClient][main][fffe29fdc8e1bf1b5d034153eafece1d11e5103c0bf289fec920323bc33e83f7] [Consumer clientId=logstash-0, groupId=logstash-debug-newest] Node -1 disconnected.

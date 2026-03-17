@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+data:
+    logstash.conf: |
+      input {
+        kafka {
+          bootstrap_servers => "kafka:9092"
+          topics => ["siem-events", "ids-events", "edr-events"]
+          group_id => "logstash-debug-newest"
+          auto_offset_reset => "earliest"
+          codec => "json"
+          decorate_events => true
+        }
+      }
+      filter {
+        mutate {
+          add_field => { "tenant" => "Tenant_01" }
+          add_field => { "target_index_prefix" => "%{[@metadata][kafka][topic]}" }
+        }
+        mutate {
+          gsub => [
+            "target_index_prefix", "ids-events", "ips",
+            "target_index_prefix", "siem-events", "siem",
+            "target_index_prefix", "edr-events", "edr"
+          ]
+        }
+      }
+      output {
+        opensearch {
+          hosts => ["http://opensearch:9200"]
+          index => "tenant_01_%{target_index_prefix}-%{+YYYY.MM.dd}"
+          auth_type => "none"
+        }
+        stdout {
+          codec => rubydebug {
+            metadata => true
+          }
+        }
+      }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+      - name: logstash
+        image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
+        volumeMounts:
+        - name: config-volume
+          mountPath: /usr/share/logstash/pipeline/
+      volumes:
+      - name: config-volume
+        configMap:
+          name: logstash-config

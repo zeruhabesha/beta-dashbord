@@ -2,7 +2,7 @@
 // If node-fetch isn't available, we'll try native fetch or axios if present.
 // Since package.json has "type": "module", we can use top-level await and imports if node version supports it.
 
-const OSD_URL = "http://localhost:5601";
+const OSD_URL = "http://localhost:5602";
 const AUTH = "Basic " + Buffer.from("admin:S0c!Dash#2025_OpN").toString('base64');
 const SOURCE_DASHBOARD_ID = "dashboard-siem-main";
 

@@ -58,8 +58,31 @@ export function SecurityOverview() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full w-full">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="flex flex-col items-center justify-center h-full w-full bg-[#f6f8fa] dark:bg-[#09090b]">
+                <div className="relative">
+                    {/* Animated rings */}
+                    <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 animate-ping"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-cyan-500 border-l-indigo-500 animate-spin"></div>
+
+                    {/* BETA Logo/Text */}
+                    <div className="relative w-20 h-20 flex items-center justify-center">
+                        <div className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            BETA
+                        </div>
+                    </div>
+                </div>
+
+                {/* Loading text */}
+                <div className="mt-6 text-center">
+                    <p className="text-slate-600 dark:text-slate-400 font-semibold text-sm mb-1">
+                        Loading Security Dashboard
+                    </p>
+                    <div className="flex items-center justify-center gap-1">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -212,8 +235,8 @@ export function SecurityOverview() {
                                 <tr key={i} className="group border-b border-slate-100/50 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                                     <td className="py-4 pl-2">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${alert.severity === 'Critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                                alert.severity === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                            alert.severity === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                                             }`}>
                                             {alert.severity}
                                         </span>

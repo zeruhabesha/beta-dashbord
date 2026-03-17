@@ -3,10 +3,12 @@ import { Sidebar } from './components/Layout/Sidebar';
 import { Navbar } from './components/Layout/Navbar';
 import { Login } from './components/Auth/Login';
 import { TeamSelector } from './components/Onboarding/TeamSelector';
+import { Tenants } from './components/Pages/Tenants';
+import { IndexOverview } from './components/Dashboard/IndexOverview';
 
 import {
     ShieldAlert, LayoutDashboard, Search, FileText,
-    Activity, Monitor, Network, Lock, Zap, Server
+    Activity, Monitor, Network, Lock, Zap, Server, LogOut
 } from 'lucide-react';
 
 import { MODULE_CONFIG } from './config/moduleConfig';
@@ -42,13 +44,27 @@ function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [user, setUser] = useState(null);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
     // Get current module config
     const activeModuleConfig = MODULE_CONFIG[activeModuleId] || MODULE_CONFIG.siem;
 
+    const handleLogout = () => {
+        // Clear Browser Storage and Sessions
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Reset App State
+        setAppState('login');
+        setUser(null);
+        setActiveModuleId('siem');
+        setSearchQuery('');
+        setIsLogoutDialogOpen(false);
+    };
+
     // Construct iframe URL for OpenSearch views
     const getDashboardUrl = () => {
-        const baseUrl = 'http://localhost:5601';
+        const baseUrl = window._env_?.OPENSEARCH_URL || 'http://localhost:5601';
         // Pass theme param to OpenSearch Dashboards
         const themeParam = isDarkMode ? 'dark' : 'light';
 
@@ -123,34 +139,76 @@ function App() {
                     user={user}
                     activeModuleConfig={activeModuleConfig}
                     onModuleChange={(moduleId) => {
-                        setActiveModuleId(moduleId);
-                        setActiveView(MODULE_CONFIG[moduleId]?.defaultView || 'overview');
+                        if (moduleId !== activeModuleId) {
+                            setActiveModuleId(moduleId);
+                            setActiveView(MODULE_CONFIG[moduleId]?.defaultView || 'overview');
+                        }
                     }}
-                    onLogout={() => {
-                        setAppState('login');
-                        setUser(null);
-                    }}
+                    onRequestLogout={() => setIsLogoutDialogOpen(true)}
                     isDarkMode={isDarkMode}
                     onToggleTheme={toggleTheme}
                 />
 
+                {/* Centered Logout Confirmation Dialog */}
+                {isLogoutDialogOpen && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <div 
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-300" 
+                            onClick={() => setIsLogoutDialogOpen(false)}
+                        />
+                        <div className="relative w-full max-w-sm bg-bg-sidebar border border-border-subtle rounded-2xl shadow-xl p-6 animate-in zoom-in duration-200">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-12 h-12 rounded-full bg-status-critical/10 flex items-center justify-center text-status-critical">
+                                    <LogOut size={24} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-text-main">Sign Out?</h3>
+                                    <p className="text-sm text-text-muted">You will be logged out of your session.</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setIsLogoutDialogOpen(false)}
+                                    className="flex-1 px-4 py-2 rounded-xl border border-border-subtle text-sm font-semibold text-text-main hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex-1 px-4 py-2 rounded-xl bg-status-critical text-white text-sm font-semibold hover:bg-status-critical/90 transition-colors"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Dashboard Content */}
                 <main className="flex-1 flex overflow-hidden relative">
 
-                    {/* OpenSearch Frame Container */}
-                    <div className="flex-1 overflow-hidden relative p-4 bg-[#f3f4f6]">
-                        {/* We use a slight padding to create a 'framed' look inside the dashboard area */}
-                        <div className="w-full h-full relative overflow-hidden bg-slate-950 rounded-xl shadow-2xl">
-                            {/* Loading / Placeholder state could go here */}
-
-                            <iframe
-                                key={`${activeModuleId}-${activeView}`}
-                                src={getDashboardUrl()}
-                                className="absolute w-[calc(100%+20px)] h-[calc(100%+80px)] -top-[100px] -left-[10px] border-0 block opacity-100 transition-opacity duration-500"
-                                title={`OpenSearch Dashboard - ${activeView}`}
-                            />
+                    {activeView === 'tenants' ? (
+                        <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50">
+                            <Tenants />
                         </div>
-                    </div>
+                    ) : activeView === 'indices' ? (
+                        <div className="flex-1 overflow-y-auto p-6 bg-slate-900/50">
+                            <IndexOverview />
+                        </div>
+                    ) : (
+                        /* OpenSearch Dashboards Frame */
+                        <div className="flex-1 overflow-hidden relative p-4 bg-[#f3f4f6]">
+                            <div className="w-full h-full relative overflow-hidden bg-slate-950 rounded-xl shadow-2xl">
+                                <iframe
+                                    key={`${activeModuleId}-${activeView}`}
+                                    src={getDashboardUrl()}
+                                    className="absolute w-[calc(100%+20px)] h-[calc(100%+80px)] -top-[100px] -left-[10px] border-0 block opacity-100 transition-opacity duration-500"
+                                    title={`OpenSearch Dashboard - ${activeView}`}
+                                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                                />
+                            </div>
+                        </div>
+                    )}
 
                 </main>
             </div>
