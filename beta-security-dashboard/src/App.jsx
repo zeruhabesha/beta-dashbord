@@ -8,6 +8,7 @@ import { SiemAlerts } from './components/Pages/SiemAlerts';
 import { IndexOverview } from './components/Dashboard/IndexOverview';
 import { ObservabilityDashboard } from './components/Pages/ObservabilityDashboard';
 import { SocAutomationPage, isSocAutomationView } from './components/Pages/SocAutomationPage';
+import { CmtDashboard, isCmtView, normalizeCmtView } from './components/Pages/CmtDashboard';
 import { ManualResponseDialog } from './components/Layout/ManualResponseDialog';
 import { SocOperationsDialog } from './components/Layout/SocOperationsDialog';
 import { Database, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
@@ -442,6 +443,7 @@ function App() {
     // Get current module config
     const activeModuleConfig = MODULE_CONFIG[activeModuleId] || MODULE_CONFIG.siem;
     const isSiemLiveAlertsView = activeModuleId === 'siem' && activeView === 'live-alerts';
+    const shouldRenderCmtDashboard = ['siem', 'unified'].includes(activeModuleId) && isCmtView(activeView);
 
     const clearAlertFocus = () => {
         setAlertFocus(null);
@@ -703,6 +705,10 @@ function App() {
                     ) : isSiemLiveAlertsView ? (
                         <div className="flex-1 overflow-y-auto p-6" style={pageShellStyle}>
                             <SiemAlerts timeRange={timeRange} searchQuery={searchQuery} />
+                        </div>
+                    ) : shouldRenderCmtDashboard ? (
+                        <div className="flex-1 overflow-y-auto p-6" style={pageShellStyle}>
+                            <CmtDashboard view={normalizeCmtView(activeView)} moduleId={activeModuleId} />
                         </div>
                     ) : shouldRenderSocAutomationPage ? (
                         <div className="flex-1 overflow-y-auto p-6" style={pageShellStyle}>
