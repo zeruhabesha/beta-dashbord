@@ -7,10 +7,11 @@ import {
 import {
     CMT_API_BASE,
     CMT_AUTO_CONNECT,
+    CMT_ENABLE_SSE,
     createAlertEventSource,
     createManualCase,
+    ensureCmtSession,
     getCmtHealth,
-    getCurrentCmtUser,
     listCases,
     listFilteredAlerts,
     listRecentAlerts,
@@ -280,23 +281,23 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         setBackendReady(false);
         try {
             await getCmtHealth();
+            const currentUser = await ensureCmtSession();
+            setUser(currentUser);
             setBackendReady(true);
 
-            const [meResult, caseResult, slaResult, alertResult, templateResult] = await Promise.allSettled([
-                getCurrentCmtUser(),
+            const [caseResult, slaResult, alertResult, templateResult] = await Promise.allSettled([
                 listCases({ archived: false, page: 1, page_size: 12 }),
                 listSlaBreachedCases(),
                 view === 'alerts' ? listFilteredAlerts({ page: 1, page_size: 20, order: 'desc' }) : listRecentAlerts(10),
                 listReportTemplates()
             ]);
 
-            if (meResult.status === 'fulfilled') setUser(meResult.value);
             if (caseResult.status === 'fulfilled') setCases(asArray(caseResult.value, 'cases'));
             if (slaResult.status === 'fulfilled') setSlaCases(asArray(slaResult.value, 'cases'));
             if (alertResult.status === 'fulfilled') setAlerts(asArray(alertResult.value, 'alerts'));
             if (templateResult.status === 'fulfilled') setTemplates(asArray(templateResult.value, 'templates'));
 
-            const rejected = [meResult, caseResult, slaResult, alertResult, templateResult].find((item) => item.status === 'rejected');
+            const rejected = [caseResult, slaResult, alertResult, templateResult].find((item) => item.status === 'rejected');
             if (rejected) setMessage(rejected.reason?.message || 'Some CMT data could not be loaded.');
         } catch (error) {
             setBackendReady(false);
@@ -320,8 +321,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     }, [liveMode, load]);
 
     useEffect(() => {
-        if (!liveMode || !backendReady) {
-            setStreamStatus(liveMode ? 'checking' : 'standby');
+        if (!liveMode || !backendReady || !CMT_ENABLE_SSE) {
+            setStreamStatus(liveMode && backendReady && !CMT_ENABLE_SSE ? 'disabled' : liveMode ? 'checking' : 'standby');
             return undefined;
         }
 
@@ -441,10 +442,10 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                         <div className="flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-[0.22em] text-[#93c5fd]"><ShieldAlert size={18} /> Native Wazuh CMT API integration</div>
                         <h1 className="mt-4 text-4xl font-black tracking-tight text-white">{pageTitle}</h1>
                         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Cases, live Wazuh alerts, SLA breach response, evidence/report workflows, and RBAC-aware analyst actions backed by <span className="font-mono text-slate-200">{CMT_API_BASE}</span>.</p>
-                        {!liveMode && <p className="mt-2 text-sm text-[#fed7aa]">Live CMT calls are paused to avoid repeatedly timing out when the backend is unreachable. Demo data keeps the SOC layout usable until you connect.</p>}
+                        {!liveMode && <p className="mt-2 text-sm text-[#fed7aa]">Live CMT calls are paused to avoid unauthorized or repeated backend requests. Demo data keeps the SOC layout usable until you connect.</p>}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        <span className={clsx('inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.16em]', streamStatus === 'connected' ? 'border-[#22c55e]/50 bg-[#22c55e]/10 text-[#bbf7d0]' : streamStatus === 'standby' ? 'border-[#3b82f6]/50 bg-[#3b82f6]/10 text-[#bfdbfe]' : streamStatus === 'disconnected' ? 'border-[#ef4444]/50 bg-[#ef4444]/10 text-[#fecaca]' : 'border-[#f97316]/50 bg-[#f97316]/10 text-[#fed7aa]')}><span className="h-2 w-2 animate-pulse rounded-full bg-current" /> SSE {streamStatus}</span>
+                        <span className={clsx('inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.16em]', streamStatus === 'connected' ? 'border-[#22c55e]/50 bg-[#22c55e]/10 text-[#bbf7d0]' : ['standby', 'disabled'].includes(streamStatus) ? 'border-[#3b82f6]/50 bg-[#3b82f6]/10 text-[#bfdbfe]' : streamStatus === 'disconnected' ? 'border-[#ef4444]/50 bg-[#ef4444]/10 text-[#fecaca]' : 'border-[#f97316]/50 bg-[#f97316]/10 text-[#fed7aa]')}><span className="h-2 w-2 animate-pulse rounded-full bg-current" /> SSE {streamStatus}</span>
                         {!liveMode ? (
                             <Button type="button" variant="accent" onClick={handleConnectLive}>Connect live CMT</Button>
                         ) : (

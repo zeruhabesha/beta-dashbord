@@ -1,3 +1,6 @@
+import { getConfiguredApiToken } from '../auth/accessControl';
+import { getKeycloakAccessToken } from '../auth/keycloak';
+
 const DEFAULT_CMT_API_BASE = '/api/siem-alerts';
 const DEFAULT_REQUEST_TIMEOUT_MS = 4500;
 
@@ -8,6 +11,7 @@ function readRuntimeValue(key, fallback) {
 export const CMT_API_BASE = String(readRuntimeValue('CMT_API_BASE', DEFAULT_CMT_API_BASE)).replace(/\/$/, '');
 export const CMT_AUTO_CONNECT = String(readRuntimeValue('CMT_AUTO_CONNECT', 'false')).toLowerCase() === 'true';
 export const CMT_REQUEST_TIMEOUT_MS = Number(readRuntimeValue('CMT_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS)) || DEFAULT_REQUEST_TIMEOUT_MS;
+export const CMT_ENABLE_SSE = String(readRuntimeValue('CMT_ENABLE_SSE', 'false')).toLowerCase() === 'true';
 
 export class CmtApiError extends Error {
     constructor(status, error, message) {
@@ -16,6 +20,14 @@ export class CmtApiError extends Error {
         this.status = status;
         this.error = error;
     }
+}
+
+export function isCmtUnauthorized(error) {
+    return error?.status === 401 || error?.status === 403;
+}
+
+async function getCmtBearerToken() {
+    return getConfiguredApiToken() || await getKeycloakAccessToken();
 }
 
 async function parseCmtResponse(response, fallbackMessage) {
@@ -38,22 +50,30 @@ async function parseCmtResponse(response, fallbackMessage) {
 }
 
 export async function cmtFetch(path, options = {}) {
-    const headers = new Headers(options.headers || {});
-    const isFormData = options.body instanceof FormData;
+    const { includeAuth = true, timeoutMs: configuredTimeoutMs, ...requestOptions } = options;
+    const headers = new Headers(requestOptions.headers || {});
+    const isFormData = requestOptions.body instanceof FormData;
     const controller = new AbortController();
-    const timeoutMs = Number(options.timeoutMs || CMT_REQUEST_TIMEOUT_MS);
+    const timeoutMs = Number(configuredTimeoutMs || CMT_REQUEST_TIMEOUT_MS);
     const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!isFormData && !headers.has('Content-Type') && options.body != null) {
+    if (!isFormData && !headers.has('Content-Type') && requestOptions.body != null) {
         headers.set('Content-Type', 'application/json');
     }
 
     try {
+        if (includeAuth && !headers.has('Authorization')) {
+            const token = await getCmtBearerToken();
+            if (token) {
+                headers.set('Authorization', `Bearer ${token}`);
+            }
+        }
+
         const response = await fetch(`${CMT_API_BASE}${path}`, {
             credentials: 'include',
-            ...options,
+            ...requestOptions,
             headers,
-            signal: options.signal || controller.signal
+            signal: requestOptions.signal || controller.signal
         });
 
         return parseCmtResponse(response, `CMT API request failed: ${path}`);
@@ -81,11 +101,37 @@ function toQueryString(params = {}) {
 }
 
 export function getCmtHealth() {
-    return cmtFetch('/health', { timeoutMs: CMT_REQUEST_TIMEOUT_MS });
+    return cmtFetch('/health', { includeAuth: false, timeoutMs: CMT_REQUEST_TIMEOUT_MS });
 }
 
 export function getCurrentCmtUser() {
     return cmtFetch('/auth/me');
+}
+
+export async function exchangeCmtSession(providedToken) {
+    const token = providedToken || await getCmtBearerToken();
+
+    if (!token) {
+        throw new CmtApiError(401, 'CMT_AUTH_REQUIRED', 'Login or configure a bearer token before connecting live CMT.');
+    }
+
+    return cmtFetch('/auth/exchange', {
+        method: 'POST',
+        includeAuth: false,
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    });
+}
+
+export async function ensureCmtSession() {
+    const token = await getCmtBearerToken();
+
+    if (token) {
+        await exchangeCmtSession(token);
+    }
+
+    return getCurrentCmtUser();
 }
 
 export function listCases(params = {}) {
