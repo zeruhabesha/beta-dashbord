@@ -14,7 +14,8 @@ window._env_ = {
   "APPROVAL_SERVICE_API": "${VITE_APPROVAL_SERVICE_API-/api/approvals}",
   "RESPONSE_SERVICE_API": "${VITE_RESPONSE_SERVICE_API-/api/response}",
   "AUDIT_SERVICE_API": "${VITE_AUDIT_SERVICE_API-/api/audit-service}",
-  "THREAT_HUNTING_SERVICE_API": "${VITE_THREAT_HUNTING_SERVICE_API-/api/threat-hunting}"
+  "THREAT_HUNTING_SERVICE_API": "${VITE_THREAT_HUNTING_SERVICE_API-/api/threat-hunting}",
+  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/siem-alerts}"
 };
 EOF
 
