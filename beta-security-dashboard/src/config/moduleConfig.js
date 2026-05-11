@@ -4,7 +4,7 @@ import {
     Map as MapIcon, Bell, Target, Lock, Server,
     Code, CreditCard, Eye, LayoutDashboard, Zap, Monitor, Network,
     Globe, AlertTriangle, Terminal, ShieldAlert,
-    GitBranch, BarChart2, Layers, Cpu, Wifi, Search, CheckCircle
+    GitBranch, BarChart2, Layers, Cpu, Wifi, Search, CheckCircle, TicketCheck
 } from 'lucide-react';
 
 export const MODULE_CONFIG = {
@@ -19,6 +19,10 @@ export const MODULE_CONFIG = {
                 items: [
                     { id: 'home', label: 'Home', icon: Home },
                     { id: 'overview', label: 'SIEM Overview', icon: Home },
+                    { id: 'cmt-overview', label: 'CMT Overview', icon: TicketCheck },
+                    { id: 'cmt-alerts', label: 'CMT Alerts', icon: Bell },
+                    { id: 'cmt-cases', label: 'CMT Cases', icon: ShieldAlert },
+                    { id: 'cmt-sla', label: 'SLA Breached', icon: AlertTriangle },
                     { id: 'live-alerts', label: 'Live Alerts', icon: Bell },
                 ]
             },
@@ -210,6 +214,7 @@ export const MODULE_CONFIG = {
                     { id: 'home', label: 'Unified Dashboard', icon: Home },
                     { id: 'dashboards', label: 'Dashboard List', icon: LayoutDashboard },
                     { id: 'overview', label: 'Security Overview', icon: LayoutDashboard },
+                    { id: 'cmt-overview', label: 'CMT Command', icon: TicketCheck },
                 ]
             },
             {
@@ -226,6 +231,9 @@ export const MODULE_CONFIG = {
                 category: "Security Operations",
                 items: [
                     { id: 'siem-events', label: 'Security Events', icon: ShieldAlert },
+                    { id: 'cmt-alerts', label: 'CMT Alert Triage', icon: Bell },
+                    { id: 'cmt-cases', label: 'CMT Case Queue', icon: TicketCheck },
+                    { id: 'cmt-sla', label: 'CMT SLA Breaches', icon: AlertTriangle },
                     { id: 'malware', label: 'Malware Detection', icon: AlertTriangle },
                     { id: 'mitre', label: 'MITRE ATT&CK', icon: Shield },
                     { id: 'ids-alerts', label: 'Intrusion Alerts', icon: Bell },
