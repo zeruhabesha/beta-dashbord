@@ -15,7 +15,9 @@ window._env_ = {
   "RESPONSE_SERVICE_API": "${VITE_RESPONSE_SERVICE_API-/api/response}",
   "AUDIT_SERVICE_API": "${VITE_AUDIT_SERVICE_API-/api/audit-service}",
   "THREAT_HUNTING_SERVICE_API": "${VITE_THREAT_HUNTING_SERVICE_API-/api/threat-hunting}",
-  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/siem-alerts}"
+  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/siem-alerts}",
+  "CMT_AUTO_CONNECT": "${VITE_CMT_AUTO_CONNECT-false}",
+  "CMT_REQUEST_TIMEOUT_MS": "${VITE_CMT_REQUEST_TIMEOUT_MS-4500}"
 };
 EOF
 

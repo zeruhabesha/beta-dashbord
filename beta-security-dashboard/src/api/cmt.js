@@ -1,10 +1,13 @@
 const DEFAULT_CMT_API_BASE = '/api/siem-alerts';
+const DEFAULT_REQUEST_TIMEOUT_MS = 4500;
 
-export const CMT_API_BASE = (
-    window._env_?.CMT_API_BASE
-    || import.meta.env.VITE_CMT_API_BASE
-    || DEFAULT_CMT_API_BASE
-).replace(/\/$/, '');
+function readRuntimeValue(key, fallback) {
+    return window._env_?.[key] ?? import.meta.env[`VITE_${key}`] ?? fallback;
+}
+
+export const CMT_API_BASE = String(readRuntimeValue('CMT_API_BASE', DEFAULT_CMT_API_BASE)).replace(/\/$/, '');
+export const CMT_AUTO_CONNECT = String(readRuntimeValue('CMT_AUTO_CONNECT', 'false')).toLowerCase() === 'true';
+export const CMT_REQUEST_TIMEOUT_MS = Number(readRuntimeValue('CMT_REQUEST_TIMEOUT_MS', DEFAULT_REQUEST_TIMEOUT_MS)) || DEFAULT_REQUEST_TIMEOUT_MS;
 
 export class CmtApiError extends Error {
     constructor(status, error, message) {
@@ -37,18 +40,31 @@ async function parseCmtResponse(response, fallbackMessage) {
 export async function cmtFetch(path, options = {}) {
     const headers = new Headers(options.headers || {});
     const isFormData = options.body instanceof FormData;
+    const controller = new AbortController();
+    const timeoutMs = Number(options.timeoutMs || CMT_REQUEST_TIMEOUT_MS);
+    const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
 
     if (!isFormData && !headers.has('Content-Type') && options.body != null) {
         headers.set('Content-Type', 'application/json');
     }
 
-    const response = await fetch(`${CMT_API_BASE}${path}`, {
-        credentials: 'include',
-        ...options,
-        headers
-    });
+    try {
+        const response = await fetch(`${CMT_API_BASE}${path}`, {
+            credentials: 'include',
+            ...options,
+            headers,
+            signal: options.signal || controller.signal
+        });
 
-    return parseCmtResponse(response, `CMT API request failed: ${path}`);
+        return parseCmtResponse(response, `CMT API request failed: ${path}`);
+    } catch (error) {
+        if (error?.name === 'AbortError') {
+            throw new CmtApiError(0, 'CMT_TIMEOUT', `CMT backend did not respond within ${timeoutMs} ms.`);
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timeout);
+    }
 }
 
 function toQueryString(params = {}) {
@@ -62,6 +78,10 @@ function toQueryString(params = {}) {
 
     const query = search.toString();
     return query ? `?${query}` : '';
+}
+
+export function getCmtHealth() {
+    return cmtFetch('/health', { timeoutMs: CMT_REQUEST_TIMEOUT_MS });
 }
 
 export function getCurrentCmtUser() {

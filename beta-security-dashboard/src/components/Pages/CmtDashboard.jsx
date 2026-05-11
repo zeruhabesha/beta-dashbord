@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import {
-    Activity, AlertTriangle, Bell, CheckCircle2, Clock3, FileText, Flag,
-    Radio, RefreshCw, ShieldAlert, TicketCheck, UserCog, Wifi, X
+    AlertTriangle, Bell, Clock3, FileText, Flag,
+    Radio, RefreshCw, ShieldAlert, TicketCheck, UserCog, X
 } from 'lucide-react';
 import {
     CMT_API_BASE,
+    CMT_AUTO_CONNECT,
     createAlertEventSource,
     createManualCase,
+    getCmtHealth,
     getCurrentCmtUser,
     listCases,
     listFilteredAlerts,
@@ -47,6 +49,89 @@ const nextStatusesByStatus = {
     resolved: ['closed'],
     closed: []
 };
+
+const demoCases = [
+    {
+        id: 'demo-critical-001',
+        summary: 'Multiple failed privileged logins from suspicious host',
+        severity: 'critical',
+        status: 'open',
+        owner_id: 'unassigned',
+        customer_code: 'acme',
+        alert_id: 'wazuh-alert-92831',
+        created_at: new Date(Date.now() - 26 * 60 * 1000).toISOString(),
+        sla_deadline: new Date(Date.now() + 54 * 60 * 1000).toISOString(),
+        sla_breached: false,
+        escalated: true
+    },
+    {
+        id: 'demo-high-002',
+        summary: 'Endpoint malware signature match requires analyst review',
+        severity: 'high',
+        status: 'in-progress',
+        owner_id: 'analyst-12',
+        customer_code: 'beta-bank',
+        alert_id: 'wazuh-alert-92844',
+        created_at: new Date(Date.now() - 84 * 60 * 1000).toISOString(),
+        sla_deadline: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        sla_breached: false,
+        escalated: false
+    }
+];
+
+const demoSlaCases = [
+    {
+        id: 'demo-sla-003',
+        summary: 'Uncontained lateral movement investigation exceeded SLA',
+        severity: 'critical',
+        status: 'in-progress',
+        owner_id: 'tier2-07',
+        customer_code: 'acme',
+        alert_id: 'wazuh-alert-91990',
+        created_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+        sla_deadline: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
+        sla_breached: true,
+        escalated: true
+    }
+];
+
+const demoAlerts = [
+    {
+        id: 'demo-alert-001',
+        source_alert_id: 'wazuh-alert-92831',
+        title: 'Privileged brute force detected',
+        source: 'wazuh',
+        parser: 'syslog-auth',
+        severity: 'critical',
+        status: 'open',
+        agent_name: 'vpn-gateway-01',
+        customer_code: 'acme',
+        received_at: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+        is_anomaly: true,
+        payload: { rule_id: '5712', mitre: ['T1110'], source_ip: '203.0.113.10' }
+    },
+    {
+        id: 'demo-alert-002',
+        source_alert_id: 'wazuh-alert-92844',
+        title: 'Malware signature match on workstation',
+        source: 'wazuh',
+        parser: 'fim-yara',
+        severity: 'high',
+        status: 'open',
+        agent_name: 'workstation-04',
+        customer_code: 'beta-bank',
+        received_at: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+        is_anomaly: false,
+        payload: { rule_id: '100101', file_hash: 'sha256:demo' }
+    }
+];
+
+const demoTemplates = [
+    { id: 'demo-template-pdf', name: 'Executive Incident Summary', format: 'pdf', renderer: 'react_pdf' },
+    { id: 'demo-template-docx', name: 'Analyst Evidence Pack', format: 'docx', renderer: 'docx' }
+];
+
+const demoUser = { user_id: 'demo-analyst', username: 'demo.analyst', role: 'analyst', auth_provider: 'demo' };
 
 function asArray(payload, key) {
     if (Array.isArray(payload)) return payload;
@@ -170,22 +255,33 @@ function AlertRow({ alert, onSelect, onPromote }) {
 }
 
 export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
-    const [user, setUser] = useState(null);
-    const [cases, setCases] = useState([]);
-    const [slaCases, setSlaCases] = useState([]);
-    const [alerts, setAlerts] = useState([]);
-    const [templates, setTemplates] = useState([]);
-    const [streamStatus, setStreamStatus] = useState('connecting');
+    const [liveMode, setLiveMode] = useState(CMT_AUTO_CONNECT);
+    const [user, setUser] = useState(CMT_AUTO_CONNECT ? null : demoUser);
+    const [cases, setCases] = useState(CMT_AUTO_CONNECT ? [] : demoCases);
+    const [slaCases, setSlaCases] = useState(CMT_AUTO_CONNECT ? [] : demoSlaCases);
+    const [alerts, setAlerts] = useState(CMT_AUTO_CONNECT ? [] : demoAlerts);
+    const [templates, setTemplates] = useState(CMT_AUTO_CONNECT ? [] : demoTemplates);
+    const [streamStatus, setStreamStatus] = useState(CMT_AUTO_CONNECT ? 'checking' : 'standby');
+    const [backendReady, setBackendReady] = useState(false);
     const [selectedAlert, setSelectedAlert] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(CMT_AUTO_CONNECT);
     const [busyCaseId, setBusyCaseId] = useState('');
     const [message, setMessage] = useState('');
     const [manualCase, setManualCase] = useState({ summary: '', severity: 'high', customer_code: '' });
 
     const load = useCallback(async () => {
+        if (!liveMode) {
+            setMessage('Using demo CMT data. Click Connect live CMT to call the backend.');
+            return;
+        }
+
         setLoading(true);
         setMessage('');
+        setBackendReady(false);
         try {
+            await getCmtHealth();
+            setBackendReady(true);
+
             const [meResult, caseResult, slaResult, alertResult, templateResult] = await Promise.allSettled([
                 getCurrentCmtUser(),
                 listCases({ archived: false, page: 1, page_size: 12 }),
@@ -202,14 +298,33 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
             const rejected = [meResult, caseResult, slaResult, alertResult, templateResult].find((item) => item.status === 'rejected');
             if (rejected) setMessage(rejected.reason?.message || 'Some CMT data could not be loaded.');
+        } catch (error) {
+            setBackendReady(false);
+            setLiveMode(false);
+            setUser(demoUser);
+            setCases(demoCases);
+            setSlaCases(demoSlaCases);
+            setAlerts(demoAlerts);
+            setTemplates(demoTemplates);
+            setStreamStatus('standby');
+            setMessage(`${error.message || 'CMT backend is not reachable.'} Showing demo data without retrying.`);
         } finally {
             setLoading(false);
         }
-    }, [view]);
-
-    useEffect(() => { load(); }, [load]);
+    }, [liveMode, view]);
 
     useEffect(() => {
+        if (liveMode) {
+            load();
+        }
+    }, [liveMode, load]);
+
+    useEffect(() => {
+        if (!liveMode || !backendReady) {
+            setStreamStatus(liveMode ? 'checking' : 'standby');
+            return undefined;
+        }
+
         const eventSource = createAlertEventSource();
         setStreamStatus('connecting');
         eventSource.addEventListener('open', () => setStreamStatus('connected'));
@@ -222,9 +337,13 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
             }
         });
         eventSource.addEventListener('lag', () => load());
-        eventSource.onerror = () => setStreamStatus('reconnecting');
+        eventSource.onerror = () => {
+            eventSource.close();
+            setStreamStatus('disconnected');
+            setMessage('CMT alert stream disconnected; it will stay closed until you refresh live CMT.');
+        };
         return () => eventSource.close();
-    }, [load]);
+    }, [backendReady, liveMode, load]);
 
     const stats = useMemo(() => {
         const openCases = cases.filter((item) => normalizeStatus(item.status) !== 'closed' && !item.archived);
@@ -239,11 +358,22 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const canWrite = user?.role !== 'viewer';
     const pageTitle = moduleId === 'unified' ? 'Unified CMT Command Center' : 'SIEM Case Management & Ticketing';
 
+    const handleConnectLive = () => {
+        setBackendReady(false);
+        setLiveMode(true);
+        setMessage('Checking the live CMT backend before loading dashboard data...');
+    };
+
     const handleStatusChange = async (caseId, nextStatus) => {
         setBusyCaseId(caseId);
         const previous = cases;
         setCases((current) => current.map((item) => item.id === caseId ? { ...item, status: nextStatus } : item));
         try {
+            if (!liveMode) {
+                setMessage(`Demo case moved to ${nextStatus}. Connect live CMT to persist changes.`);
+                return;
+            }
+
             await updateCaseStatus(caseId, nextStatus);
             setMessage(`Case moved to ${nextStatus}.`);
         } catch (error) {
@@ -257,6 +387,11 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const handlePromote = async (alert) => {
         try {
             const alertId = alert.source_alert_id || alert.alert_id || alert.id;
+            if (!liveMode) {
+                setMessage('Demo alert promoted locally. Connect live CMT to call POST /alerts/:id/promote.');
+                return;
+            }
+
             await promoteAlertToCase(alertId);
             setMessage('Alert promoted to a CMT case.');
             await load();
@@ -268,6 +403,25 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const handleCreateManualCase = async (event) => {
         event.preventDefault();
         try {
+            if (!liveMode) {
+                const created = {
+                    id: `demo-manual-${Date.now()}`,
+                    ...manualCase,
+                    status: 'open',
+                    owner_id: user?.user_id || 'demo-analyst',
+                    alert_id: 'manual',
+                    created_at: new Date().toISOString(),
+                    alert_timestamp: new Date().toISOString(),
+                    sla_deadline: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+                    sla_breached: false,
+                    escalated: false
+                };
+                setCases((current) => [created, ...current]);
+                setManualCase({ summary: '', severity: 'high', customer_code: '' });
+                setMessage('Demo manual case created locally. Connect live CMT to persist cases.');
+                return;
+            }
+
             await createManualCase({ ...manualCase, alert_timestamp: new Date().toISOString() });
             setManualCase({ summary: '', severity: 'high', customer_code: '' });
             setMessage('Manual case created.');
@@ -287,10 +441,15 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                         <div className="flex flex-wrap items-center gap-3 text-xs font-black uppercase tracking-[0.22em] text-[#93c5fd]"><ShieldAlert size={18} /> Native Wazuh CMT API integration</div>
                         <h1 className="mt-4 text-4xl font-black tracking-tight text-white">{pageTitle}</h1>
                         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">Cases, live Wazuh alerts, SLA breach response, evidence/report workflows, and RBAC-aware analyst actions backed by <span className="font-mono text-slate-200">{CMT_API_BASE}</span>.</p>
+                        {!liveMode && <p className="mt-2 text-sm text-[#fed7aa]">Live CMT calls are paused to avoid repeatedly timing out when the backend is unreachable. Demo data keeps the SOC layout usable until you connect.</p>}
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        <span className={clsx('inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.16em]', streamStatus === 'connected' ? 'border-[#22c55e]/50 bg-[#22c55e]/10 text-[#bbf7d0]' : 'border-[#f97316]/50 bg-[#f97316]/10 text-[#fed7aa]')}><span className="h-2 w-2 animate-pulse rounded-full bg-current" /> SSE {streamStatus}</span>
-                        <Button type="button" variant="infoOutline" onClick={load}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh</Button>
+                        <span className={clsx('inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.16em]', streamStatus === 'connected' ? 'border-[#22c55e]/50 bg-[#22c55e]/10 text-[#bbf7d0]' : streamStatus === 'standby' ? 'border-[#3b82f6]/50 bg-[#3b82f6]/10 text-[#bfdbfe]' : streamStatus === 'disconnected' ? 'border-[#ef4444]/50 bg-[#ef4444]/10 text-[#fecaca]' : 'border-[#f97316]/50 bg-[#f97316]/10 text-[#fed7aa]')}><span className="h-2 w-2 animate-pulse rounded-full bg-current" /> SSE {streamStatus}</span>
+                        {!liveMode ? (
+                            <Button type="button" variant="accent" onClick={handleConnectLive}>Connect live CMT</Button>
+                        ) : (
+                            <Button type="button" variant="infoOutline" onClick={load}><RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh</Button>
+                        )}
                     </div>
                 </div>
                 {message && <div className="mt-5 rounded-2xl border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-4 py-3 text-sm text-[#bfdbfe]">{message}</div>}
@@ -354,7 +513,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                     <aside className="h-full w-full max-w-xl overflow-y-auto border-l border-[#1e2d45] bg-[#0a0d14] p-6 text-slate-100 shadow-2xl" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-start justify-between gap-4"><div><div className="flex gap-2"><SeverityBadge severity={selectedAlert.severity} />{selectedAlert.is_anomaly === true && <span className="rounded-full border border-[#a855f7]/60 bg-[#a855f7]/15 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#e9d5ff]">🤖 Anomaly</span>}</div><h2 className="mt-4 text-2xl font-black text-white">{selectedAlert.title || selectedAlert.rule_description || 'Alert detail'}</h2></div><button type="button" onClick={() => setSelectedAlert(null)} className="rounded-xl border border-[#1e2d45] p-2 text-slate-400 hover:text-white"><X size={18} /></button></div>
                         <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">{[['Source alert ID', selectedAlert.source_alert_id || selectedAlert.id], ['Source', selectedAlert.source || selectedAlert.parser], ['Agent', selectedAlert.agent_name], ['Customer', selectedAlert.customer_code], ['Received', formatDateTime(selectedAlert.received_at || selectedAlert.timestamp)], ['Status', selectedAlert.status]].map(([label, value]) => <div key={label} className="rounded-2xl border border-[#1e2d45] bg-[#111827] p-4"><dt className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</dt><dd className="mt-1 break-all font-mono text-slate-200">{value || '—'}</dd></div>)}</dl>
-                        <div className="mt-6 flex flex-wrap gap-3"><Button type="button" variant="warning" onClick={() => handlePromote(selectedAlert)} disabled={!canWrite}>Promote to Case</Button><Button type="button" variant="infoOutline" onClick={() => setAlertAnomaly(selectedAlert.source_alert_id || selectedAlert.id, !selectedAlert.is_anomaly)} disabled={!canWrite}>Toggle Anomaly</Button></div>
+                        <div className="mt-6 flex flex-wrap gap-3"><Button type="button" variant="warning" onClick={() => handlePromote(selectedAlert)} disabled={!canWrite}>Promote to Case</Button><Button type="button" variant="infoOutline" onClick={() => liveMode ? setAlertAnomaly(selectedAlert.source_alert_id || selectedAlert.id, !selectedAlert.is_anomaly) : setMessage('Demo anomaly toggle is local-only. Connect live CMT to persist labels.')} disabled={!canWrite}>Toggle Anomaly</Button></div>
                         <pre className="mt-6 max-h-96 overflow-auto rounded-2xl border border-[#1e2d45] bg-black p-4 text-xs text-slate-200">{JSON.stringify(selectedAlert.payload || selectedAlert, null, 2)}</pre>
                     </aside>
                 </div>
