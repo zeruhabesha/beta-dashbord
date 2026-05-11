@@ -15,7 +15,7 @@ export function Endpoints() {
         {
             key: 'name', label: 'Endpoint Name', render: (val, row) => (
                 <div className="flex items-center gap-3">
-                    {row.type === 'Server' ? <Server size={18} className="text-blue-500" /> : <Laptop size={18} className="text-purple-500" />}
+                    {row.type === 'Server' ? <Server size={18} className="text-text-main" /> : <Laptop size={18} className="text-text-main" />}
                     <span className="font-bold text-text-main">{val}</span>
                 </div>
             )
@@ -23,8 +23,8 @@ export function Endpoints() {
         {
             key: 'status', label: 'Status', render: (val) => (
                 <div className="flex items-center gap-2">
-                    {val === 'Online' ? <CheckCircle2 size={16} className="text-green-500" /> : <AlertCircle size={16} className={val === 'Offline' ? 'text-text-muted' : 'text-orange-500'} />}
-                    <span className={val === 'Online' ? 'text-green-500 font-medium' : val === 'Offline' ? 'text-text-muted' : 'text-orange-500 font-medium'}>
+                    {val === 'Online' ? <CheckCircle2 size={16} className="text-text-main" /> : <AlertCircle size={16} className={val === 'Offline' ? 'text-text-muted' : 'text-text-main'} />}
+                    <span className={val === 'Online' ? 'text-text-main font-medium' : val === 'Offline' ? 'text-text-muted' : 'text-text-main font-medium'}>
                         {val}
                     </span>
                 </div>

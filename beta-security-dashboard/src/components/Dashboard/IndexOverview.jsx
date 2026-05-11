@@ -14,10 +14,14 @@ import {
     Trash2
 } from 'lucide-react';
 import { DataTable } from '../Common/DataTable';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { fetchIndices, deleteOldIndexPatterns } from '../../api/opensearch';
+import { fetchClusterHealth } from '../../api/otelApi';
+import { Shield, Cpu, Wifi, Server } from 'lucide-react';
 
 // Simple bar chart component
-const BarChart = ({ data, labelKey, valueKey, color = 'primary' }) => {
+const BarChart = ({ data, labelKey, valueKey }) => {
     const maxValue = Math.max(...data.map(d => d[valueKey]));
     
     return (
@@ -27,9 +31,9 @@ const BarChart = ({ data, labelKey, valueKey, color = 'primary' }) => {
                     <div className="w-32 text-xs text-text-muted truncate" title={item[labelKey]}>
                         {item[labelKey]}
                     </div>
-                    <div className="flex-1 h-6 bg-slate-800 rounded overflow-hidden">
+                    <div className="flex-1 h-6 overflow-hidden rounded bg-neutral-200 dark:bg-neutral-800">
                         <div 
-                            className={`h-full bg-${color}-500/80 rounded transition-all duration-500`}
+                            className="h-full rounded bg-neutral-950 transition-all duration-500 dark:bg-white"
                             style={{ width: `${(item[valueKey] / maxValue) * 100}%` }}
                         />
                     </div>
@@ -43,11 +47,11 @@ const BarChart = ({ data, labelKey, valueKey, color = 'primary' }) => {
 };
 
 // Stat card component
-const StatCard = ({ icon: Icon, label, value, subtext, color = "primary" }) => (
+const StatCard = ({ icon: Icon, label, value, subtext }) => (
     <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
         <div className="flex items-start justify-between">
-            <div className={`p-2 bg-${color}-500/10 rounded-lg`}>
-                <Icon size={20} className={`text-${color}-400`} />
+            <div className="rounded-lg border border-neutral-950/20 bg-neutral-950/5 p-2 text-neutral-950 dark:border-white/20 dark:bg-white/10 dark:text-white">
+                <Icon size={20} />
             </div>
         </div>
         <div className="mt-3">
@@ -64,6 +68,7 @@ export function IndexOverview() {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(null);
     const [cleanupStatus, setCleanupStatus] = useState(null);
+    const [clusterHealth, setClusterHealth] = useState(null);
 
     const loadIndices = async () => {
         setLoading(true);
@@ -133,9 +138,9 @@ export function IndexOverview() {
             label: 'Health',
             render: (val) => {
                 const colors = {
-                    green: 'text-green-400 bg-green-500/10',
-                    yellow: 'text-yellow-400 bg-yellow-500/10',
-                    red: 'text-red-400 bg-red-500/10'
+                    green: 'text-success bg-success/10 border border-success/30',
+                    yellow: 'text-neutral-950 bg-neutral-100 border border-neutral-300 dark:text-white dark:bg-neutral-900 dark:border-neutral-700',
+                    red: 'text-destructive bg-destructive/10 border border-destructive/30'
                 };
                 const icons = {
                     green: CheckCircle,
@@ -155,7 +160,7 @@ export function IndexOverview() {
             key: 'status', 
             label: 'Status',
             render: (val) => (
-                <span className={`text-xs ${val === 'open' ? 'text-green-400' : 'text-yellow-400'}`}>
+                <span className={`text-xs ${val === 'open' ? 'text-text-main' : 'text-text-muted'}`}>
                     {val?.toUpperCase()}
                 </span>
             )
@@ -186,27 +191,29 @@ export function IndexOverview() {
                         Index Overview
                     </h2>
                     <p className="text-sm text-text-muted mt-1">
-                        Real-time view of indices from SIEM indexer (192.168.1.11:9200)
+                        Real-time view of indices from the connected OpenSearch cluster
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
+                    <Button
+                        type="button"
                         onClick={handleCleanup}
                         disabled={cleanupStatus === 'cleaning'}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600/80 hover:bg-red-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        variant="warning"
                         title="Remove old tenant-* index patterns"
                     >
                         <Trash2 size={16} />
                         {cleanupStatus === 'cleaning' ? 'Cleaning...' : 'Clean Up'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                        type="button"
                         onClick={loadIndices}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-500 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        variant="info"
                     >
                         <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
                         Refresh
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -216,38 +223,32 @@ export function IndexOverview() {
                     icon={Layers} 
                     label="Total Indices" 
                     value={totalIndices} 
-                    color="primary"
                 />
                 <StatCard 
                     icon={FileText} 
                     label="Total Documents" 
                     value={totalDocs.toLocaleString()} 
                     subtext={`${formatBytes(totalSize)} total`}
-                    color="blue"
                 />
                 <StatCard 
                     icon={CheckCircle} 
                     label="Healthy" 
                     value={healthyIndices} 
-                    color="green"
                 />
                 <StatCard 
                     icon={AlertCircle} 
                     label="Warning" 
                     value={yellowIndices} 
-                    color="yellow"
                 />
                 <StatCard 
                     icon={XCircle} 
                     label="Critical" 
                     value={redIndices} 
-                    color="red"
                 />
                 <StatCard 
                     icon={HardDrive} 
                     label="Storage Used" 
                     value={formatBytes(totalSize)} 
-                    color="purple"
                 />
             </div>
 
@@ -264,7 +265,6 @@ export function IndexOverview() {
                             data={topIndicesByDocs} 
                             labelKey="name" 
                             valueKey="docsCount"
-                            color="primary"
                         />
                     ) : (
                         <div className="text-center py-8 text-text-muted text-sm">
@@ -276,7 +276,7 @@ export function IndexOverview() {
                 {/* Top Indices by Size */}
                 <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-4">
-                        <HardDrive size={18} className="text-purple-400" />
+                        <HardDrive size={18} className="text-text-main" />
                         <h3 className="font-semibold text-text-main">Top Indices by Size</h3>
                     </div>
                     {topIndicesBySize.length > 0 ? (
@@ -284,7 +284,6 @@ export function IndexOverview() {
                             data={topIndicesBySize.map(idx => ({...idx, storeSizeMB: Math.round(idx.storeSize / 1024 / 1024)}))} 
                             labelKey="name" 
                             valueKey="storeSizeMB"
-                            color="purple"
                         />
                     ) : (
                         <div className="text-center py-8 text-text-muted text-sm">
@@ -304,12 +303,12 @@ export function IndexOverview() {
                     </div>
                     <div className="flex-1 relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={16} />
-                        <input
+                        <Input
                             type="text"
                             placeholder="Search indices..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-slate-950 border border-border-subtle rounded-lg py-2 pl-10 pr-4 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:border-primary-500"
+                            className="pl-10"
                         />
                     </div>
                     <div className="text-sm text-text-muted">
@@ -331,28 +330,28 @@ export function IndexOverview() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <CheckCircle size={16} className="text-green-400" />
+                        <CheckCircle size={16} className="text-success" />
                         <span className="text-sm font-medium text-text-main">Green Indices</span>
                     </div>
-                    <div className="text-2xl font-bold text-green-400">{healthyIndices}</div>
+                    <div className="text-2xl font-bold text-success">{healthyIndices}</div>
                     <div className="text-xs text-text-muted">Fully healthy shards</div>
                 </div>
                 
                 <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <AlertCircle size={16} className="text-yellow-400" />
+                        <AlertCircle size={16} className="text-text-main" />
                         <span className="text-sm font-medium text-text-main">Yellow Indices</span>
                     </div>
-                    <div className="text-2xl font-bold text-yellow-400">{yellowIndices}</div>
+                    <div className="text-2xl font-bold text-text-main">{yellowIndices}</div>
                     <div className="text-xs text-text-muted">Some replica shards unassigned</div>
                 </div>
                 
                 <div className="bg-bg-card border border-border-subtle rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
-                        <XCircle size={16} className="text-red-400" />
+                        <XCircle size={16} className="text-destructive" />
                         <span className="text-sm font-medium text-text-main">Red Indices</span>
                     </div>
-                    <div className="text-2xl font-bold text-red-400">{redIndices}</div>
+                    <div className="text-2xl font-bold text-destructive">{redIndices}</div>
                     <div className="text-xs text-text-muted">Some primary shards unassigned</div>
                 </div>
             </div>

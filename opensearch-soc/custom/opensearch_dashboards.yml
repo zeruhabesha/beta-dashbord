@@ -1,4 +1,4 @@
-opensearch.hosts: ["https://opensearch:9200"]
+opensearch.hosts: ["http://196.188.249.46:9200"]
 opensearch.ssl.verificationMode: none
 
 uiSettings:

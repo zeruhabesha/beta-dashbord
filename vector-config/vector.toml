@@ -71,7 +71,7 @@ source = '''
 [sinks.opensearch]
 type              = "elasticsearch"
 inputs            = ["enrich"]
-endpoints         = ["http://opensearch-node1:9200"]
+endpoints         = ["http://196.188.249.46:9200"]
 mode              = "bulk"
 bulk.index        = "{{ index_name }}"
 bulk.action       = "index"

@@ -12,21 +12,21 @@ HEADERS = {
 }
 
 # Index Patterns to Create
-# (Pattern Name, Time Field)
+# (Saved object ID, title, time field)
 INDEX_PATTERNS = [
-    ("siem-events-*", "@timestamp"),
-    ("ids-traffic-*", "@timestamp"),
-    ("edr-endpoints-*", "@timestamp"),
-    ("vuln-scans-*", "@timestamp"),
-    ("netflow-traffic-*", "@timestamp")
+    ("unified-index-pattern", "logs-tenant-*", "@timestamp"),
+    ("siem-events-*", "siem-events-*", "@timestamp"),
+    ("ids-traffic-*", "ids-traffic-*", "@timestamp"),
+    ("edr-endpoints-*", "edr-endpoints-*", "@timestamp"),
+    ("vuln-scans-*", "vuln-scans-*", "@timestamp"),
+    ("netflow-traffic-*", "netflow-traffic-*", "@timestamp")
 ]
 
-def create_index_pattern(pattern, time_field):
-    # Using the pattern itself as the ID for easier reference
-    url = f"{DASHBOARDS_URL}/api/saved_objects/index-pattern/{pattern}"
+def create_index_pattern(pattern_id, title, time_field):
+    url = f"{DASHBOARDS_URL}/api/saved_objects/index-pattern/{pattern_id}"
     data = {
         "attributes": {
-            "title": pattern,
+            "title": title,
             "timeFieldName": time_field
         }
     }
@@ -35,19 +35,19 @@ def create_index_pattern(pattern, time_field):
         response = requests.post(url, headers=HEADERS, json=data)
         
         if response.status_code == 200:
-            print(f"[SUCCESS] Created index pattern: {pattern}")
+            print(f"[SUCCESS] Created index pattern: {pattern_id} -> {title}")
         elif response.status_code == 409:
-             print(f"[INFO] Index pattern already exists: {pattern}")
+             print(f"[INFO] Index pattern already exists: {pattern_id}")
         else:
-            print(f"[ERROR] Failed to create {pattern}. Status: {response.status_code}, Response: {response.text}")
+            print(f"[ERROR] Failed to create {pattern_id}. Status: {response.status_code}, Response: {response.text}")
             
     except Exception as e:
-        print(f"[ERROR] Exception creating {pattern}: {e}")
+        print(f"[ERROR] Exception creating {pattern_id}: {e}")
 
 def main():
     print("Registering Index Patterns...")
-    for pattern, time_field in INDEX_PATTERNS:
-        create_index_pattern(pattern, time_field)
+    for pattern_id, title, time_field in INDEX_PATTERNS:
+        create_index_pattern(pattern_id, title, time_field)
         
     print("Done.")
 

@@ -9,7 +9,7 @@
  */
 class OpenSearchClient {
     constructor(config = {}) {
-        this.baseUrl = config.baseUrl || 'http://localhost:9200';
+        this.baseUrl = config.baseUrl || 'http://196.188.249.46:9200';
         this.username = config.username || 'admin';
         this.password = config.password || 'admin';
         this.currentTenant = 'Tenant_01';
@@ -401,7 +401,7 @@ class OpenSearchClient {
 
 // Initialize OpenSearch client
 const openSearchClient = new OpenSearchClient({
-    baseUrl: 'http://localhost:9200',
+    baseUrl: 'http://196.188.249.46:9200',
     username: 'admin',
     password: 'admin'
 });

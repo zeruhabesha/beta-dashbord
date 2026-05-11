@@ -1,18 +1,22 @@
 import React from 'react';
-import { Search, LogOut } from 'lucide-react';
+import { Search, LogOut, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 import clsx from 'clsx';
+import { AlertCenter } from './AlertCenter';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onRequestLogout, activeModuleConfig, onModuleChange, isDarkMode, onToggleTheme }) {
+export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onRequestLogout, activeModuleConfig, activeView, onModuleChange, isDarkMode, onToggleTheme, onAlertNavigate, canUseManualResponse, onManualResponse, onSocOperations }) {
 
     const ranges = ['15m', '1h', '24h', '7d'];
     const displayName = user || "Admin User";
     const initials = displayName.substring(0, 2).toUpperCase();
-
-    // Mock Global Threat Level
-    const threatLevel = "High"; // can be dynamic
+    const activeViewLabel = activeModuleConfig?.menuStructure
+        ?.flatMap((group) => group.items || [])
+        ?.find((item) => item.id === activeView)
+        ?.label || activeModuleConfig?.title || 'Current View';
 
     return (
-        <header className="h-16 bg-bg-sidebar/80 backdrop-blur-md border-b border-border-subtle flex items-center px-6 gap-6 shrink-0 transition-colors duration-300 z-50 sticky top-0">
+        <header className="h-16 bg-bg-sidebar/90 backdrop-blur-xl border-b border-primary/20 flex items-center px-6 gap-6 shrink-0 transition-colors duration-300 z-50 sticky top-0 shadow-sm shadow-primary/10">
 
             <div className="h-6 w-px bg-border-subtle/50" />
 
@@ -29,39 +33,45 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onReques
 
             {/* Global Search */}
             <div className="flex-1 max-w-xl relative mx-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-accent-primary" size={16} />
-                <input
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-foreground" size={16} />
+                <Input
                     type="text"
                     placeholder="Search IPs, hosts, threats..."
-                    className="w-full bg-bg-input border border-border-subtle rounded-full py-2 pl-10 pr-4 text-sm text-text-main focus:outline-none focus:border-accent-primary focus:ring-1 focus:ring-accent-primary/20 transition-all duration-300 placeholder:text-text-muted/50"
+                    className="h-10 rounded-full pl-10"
                     onKeyDown={(e) => e.key === 'Enter' && onSearch(e.currentTarget.value)}
                 />
             </div>
 
             {/* Time Picker */}
-            <div className="flex items-center gap-1 bg-bg-input p-1 border border-border-subtle rounded-lg">
+            <div className="flex items-center gap-1 rounded-xl border border-primary/20 bg-primary/10 p-1">
                 {ranges.map(range => (
-                    <button
+                    <Button
+                        type="button"
                         key={range}
                         onClick={() => onTimeChange(range)}
+                        variant={activeTimeRange === range ? 'info' : 'ghost'}
+                        size="sm"
                         className={clsx(
-                            "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200",
+                            "h-8 rounded-lg px-3 text-xs",
                             activeTimeRange === range
-                                ? "bg-bg-card shadow-sm text-accent-primary border border-border-subtle"
-                                : "text-text-muted hover:text-text-main hover:bg-white/5"
+                                ? "shadow-sm"
+                                : "text-primary hover:bg-primary/10 hover:text-primary"
                         )}
                     >
                         {range}
-                    </button>
+                    </Button>
                 ))}
             </div>
 
             {/* User Actions */}
             <div className="flex items-center gap-4 border-l border-border-subtle pl-4">
                 {/* Theme Toggle */}
-                <button
+                <Button
+                    type="button"
                     onClick={onToggleTheme}
-                    className="text-text-muted hover:text-accent-primary transition-colors p-1.5 hover:bg-bg-input rounded-full"
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full text-muted-foreground"
                     title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
                 >
                     {isDarkMode ? (
@@ -69,8 +79,43 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onReques
                     ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
                     )}
-                </button>
+                </Button>
 
+                <AlertCenter
+                    activeTimeRange={activeTimeRange}
+                    moduleId={activeModuleConfig?.id}
+                    viewId={activeView}
+                    moduleTitle={activeModuleConfig?.title}
+                    viewLabel={activeViewLabel}
+                    onNavigate={onAlertNavigate}
+                />
+
+                {canUseManualResponse && (
+                    <>
+                        <Button
+                            type="button"
+                            onClick={onSocOperations}
+                            variant="info"
+                            size="sm"
+                            className="rounded-full text-xs"
+                            title="SOC service controls"
+                        >
+                            <SlidersHorizontal size={16} />
+                            <span className="hidden 2xl:inline">SOC Controls</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={onManualResponse}
+                            variant="destructive"
+                            size="sm"
+                            className="rounded-full text-xs"
+                            title="Manual analyst response"
+                        >
+                            <ShieldAlert size={16} />
+                            <span className="hidden 2xl:inline">Manual Action</span>
+                        </Button>
+                    </>
+                )}
 
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden md:block">
@@ -78,20 +123,23 @@ export function Navbar({ activeTimeRange, onTimeChange, onSearch, user, onReques
                     </div>
 
                     <div className="relative group cursor-pointer">
-                        <div className="w-9 h-9 bg-bg-card rounded-full border border-border-subtle flex items-center justify-center text-xs font-bold text-accent-primary shadow-sm group-hover:border-accent-primary transition-colors">
+                        <div className="w-9 h-9 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shadow-sm group-hover:border-primary transition-colors">
                             {initials}
                         </div>
                         <div className="absolute inset-0 rounded-full border border-accent-primary opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300" />
                     </div>
 
                     {/* Logout Button */}
-                    <button
+                    <Button
+                        type="button"
                         onClick={onRequestLogout}
-                        className="p-2 text-text-muted hover:text-status-critical hover:bg-status-critical/10 rounded-full transition-colors"
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full text-muted-foreground hover:text-destructive"
                         title="Sign Out"
                     >
                         <LogOut size={18} />
-                    </button>
+                    </Button>
                 </div>
             </div>
         </header>

@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, Search, Download, Filter } from 'lucide-react';
-import clsx from 'clsx';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/components/ui/table';
 
 export const DataTable = ({
     columns,
@@ -53,25 +65,25 @@ export const DataTable = ({
 
     if (loading) {
         return (
-            <div className="bg-bg-card border border-border-subtle rounded-lg p-6">
-                <div className="space-y-3">
+            <Card className="p-6">
+                <div className="flex flex-col gap-3">
                     {[...Array(5)].map((_, i) => (
-                        <div key={i} className="h-12 bg-bg-body rounded animate-pulse"></div>
+                        <Skeleton key={i} className="h-12" />
                     ))}
                 </div>
-            </div>
+            </Card>
         );
     }
 
     return (
-        <div className="bg-bg-card border border-border-subtle rounded-lg overflow-hidden">
+        <Card className="overflow-hidden">
             {/* Table Header Actions */}
             {(searchable || exportable || filterable) && (
-                <div className="p-4 border-b border-border-subtle flex items-center gap-3">
+                <div className="flex items-center gap-3 border-b p-4">
                     {searchable && (
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" size={18} />
-                            <input
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                            <Input
                                 type="text"
                                 placeholder="Search..."
                                 value={searchTerm}
@@ -79,113 +91,110 @@ export const DataTable = ({
                                     setSearchTerm(e.target.value);
                                     setCurrentPage(1);
                                 }}
-                                className="w-full bg-bg-body border border-border-subtle rounded-lg py-2 pl-10 pr-4 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:border-primary-500 transition-colors"
+                                className="pl-10"
                             />
                         </div>
                     )}
                     {filterable && (
-                        <button className="px-4 py-2 bg-bg-body border border-border-subtle rounded-lg text-sm text-text-muted hover:text-text-main hover:border-primary-500/30 transition-all flex items-center gap-2">
+                        <Button variant="outline" type="button">
                             <Filter size={16} />
                             Filters
-                        </button>
+                        </Button>
                     )}
                     {exportable && (
-                        <button className="px-4 py-2 bg-bg-body border border-border-subtle rounded-lg text-sm text-text-muted hover:text-text-main hover:border-primary-500/30 transition-all flex items-center gap-2">
+                        <Button variant="outline" type="button">
                             <Download size={16} />
                             Export
-                        </button>
+                        </Button>
                     )}
                 </div>
             )}
 
             {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-bg-body/50 border-b border-border-subtle">
-                        <tr>
-                            {columns.map((column) => (
-                                <th
-                                    key={column.key}
-                                    onClick={() => column.sortable !== false && handleSort(column.key)}
-                                    className={clsx(
-                                        "px-6 py-3 text-left text-xs font-semibold text-text-muted uppercase tracking-wider",
-                                        column.sortable !== false && "cursor-pointer hover:text-primary-400 transition-colors select-none"
+            <Table>
+                <TableHeader className="bg-muted/40">
+                    <TableRow>
+                        {columns.map((column) => (
+                            <TableHead
+                                key={column.key}
+                                onClick={() => column.sortable !== false && handleSort(column.key)}
+                                className={cn(
+                                    'px-6 text-xs font-semibold uppercase tracking-wider',
+                                    column.sortable !== false && 'cursor-pointer select-none hover:text-foreground'
+                                )}
+                            >
+                                <div className="flex items-center gap-2">
+                                    {column.label}
+                                    {column.sortable !== false && sortColumn === column.key && (
+                                        sortDirection === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                                     )}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        {column.label}
-                                        {column.sortable !== false && sortColumn === column.key && (
-                                            sortDirection === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
-                                        )}
-                                    </div>
-                                </th>
-                            ))}
-                            {actions && <th className="px-6 py-3 text-right text-xs font-semibold text-text-muted uppercase">Actions</th>}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border-subtle">
-                        {paginatedData.length === 0 ? (
-                            <tr>
-                                <td colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-text-muted">
-                                    No data available
-                                </td>
-                            </tr>
-                        ) : (
-                            paginatedData.map((row, rowIndex) => (
-                                <tr
-                                    key={rowIndex}
-                                    onClick={() => onRowClick && onRowClick(row)}
-                                    className={clsx(
-                                        "transition-colors",
-                                        onRowClick && "cursor-pointer hover:bg-bg-body/50"
-                                    )}
-                                >
-                                    {columns.map((column) => (
-                                        <td key={column.key} className="px-6 py-4 text-sm text-text-main whitespace-nowrap">
-                                            {column.render ? column.render(row[column.key], row) : row[column.key]}
-                                        </td>
-                                    ))}
-                                    {actions && (
-                                        <td className="px-6 py-4 text-right text-sm">
-                                            <div className="flex items-center justify-end gap-2">
-                                                {actions(row)}
-                                            </div>
-                                        </td>
-                                    )}
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </TableHead>
+                        ))}
+                        {actions && <TableHead className="px-6 text-right text-xs font-semibold uppercase">Actions</TableHead>}
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {paginatedData.length === 0 ? (
+                        <TableRow>
+                            <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="px-6 py-12 text-center text-muted-foreground">
+                                No data available
+                            </TableCell>
+                        </TableRow>
+                    ) : (
+                        paginatedData.map((row, rowIndex) => (
+                            <TableRow
+                                key={rowIndex}
+                                onClick={() => onRowClick && onRowClick(row)}
+                                className={cn(onRowClick && 'cursor-pointer')}
+                            >
+                                {columns.map((column) => (
+                                    <TableCell key={column.key} className="px-6 py-4 whitespace-nowrap text-foreground">
+                                        {column.render ? column.render(row[column.key], row) : row[column.key]}
+                                    </TableCell>
+                                ))}
+                                {actions && (
+                                    <TableCell className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            {actions(row)}
+                                        </div>
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))
+                    )}
+                </TableBody>
+            </Table>
 
             {/* Pagination */}
             {totalPages > 1 && (
-                <div className="px-6 py-4 border-t border-border-subtle flex items-center justify-between">
-                    <div className="text-sm text-text-muted">
+                <div className="flex items-center justify-between border-t px-6 py-4">
+                    <div className="text-sm text-muted-foreground">
                         Showing {startIndex + 1} to {Math.min(startIndex + pageSize, sortedData.length)} of {sortedData.length} results
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1 bg-bg-body border border-border-subtle rounded text-sm text-text-muted hover:text-text-main hover:border-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             Previous
-                        </button>
-                        <span className="text-sm text-text-muted">
+                        </Button>
+                        <span className="text-sm text-muted-foreground">
                             Page {currentPage} of {totalPages}
                         </span>
-                        <button
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1 bg-bg-body border border-border-subtle rounded text-sm text-text-muted hover:text-text-main hover:border-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                         >
                             Next
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
-        </div>
+        </Card>
     );
 };

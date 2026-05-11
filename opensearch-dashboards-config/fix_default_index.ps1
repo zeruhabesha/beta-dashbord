@@ -42,12 +42,14 @@ try {
         $body = @{
             attributes = @{
                 "defaultIndex" = $newDefaultId
+                "dateFormat:tz" = "UTC"
             }
         } | ConvertTo-Json -Depth 5
 
         # Update the config
         Invoke-RestMethod -Uri "$baseUri/config/$configId" -Method Put -Headers $headers -Body $body | Out-Null
         Write-Host "Successfully updated defaultIndex!" -ForegroundColor Green
+        Write-Host "Forced timezone to UTC!" -ForegroundColor Green
     }
     else {
         Write-Warning "Could not find 'config' object to update defaultIndex."

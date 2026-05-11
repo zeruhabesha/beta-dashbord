@@ -20,7 +20,7 @@ export function Events({ type = 'Security Events' }) {
         { key: 'timestamp', label: 'Timestamp', render: (val) => new Date(val).toLocaleString() },
         {
             key: 'category', label: 'Category', render: (val) => (
-                <span className={`px-2 py-1 rounded text-xs font-semibold ${val === 'FAILED_LOGIN' ? 'bg-red-900/30 text-red-500' : 'bg-blue-900/30 text-blue-500'
+                <span className={`rounded border px-2 py-1 text-xs font-semibold ${val === 'FAILED_LOGIN' ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-neutral-300 bg-neutral-100 text-neutral-950 dark:border-neutral-700 dark:bg-black dark:text-white'
                     }`}>
                     {val}
                 </span>

@@ -10,6 +10,7 @@ HEADERS = {
 
 def create_index_pattern():
     patterns = [
+        ("unified-index-pattern", "logs-tenant-*"),
         ("tenant-01-logs", "tenant-01-logs-*"),
         ("tenant-01-siem", "tenant-01-siem-*"),
         ("tenant-01-ids", "tenant-01-ids-*"),
@@ -39,7 +40,7 @@ def create_index_pattern():
         except Exception as e:
             print(f"Error creating index pattern {pattern_id}: {e}")
             
-    return "tenant_01_unified"
+    return "unified-index-pattern"
 
 def create_dashboard(index_pattern_id):
     dashboard_id = "unified-home"

@@ -24,7 +24,7 @@ services:
     image: opensearchproject/opensearch-dashboards:2.13.0
     container_name: opensearch-dashboards
     environment:
-      - OPENSEARCH_HOSTS=["http://opensearch-node1:9200"]
+      - OPENSEARCH_HOSTS=["http://196.188.249.46:9200"]
       - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
     ports:
       - "5601:5601"
@@ -119,13 +119,28 @@ services:
     container_name: security-dashboard
     depends_on:
       - opensearch
+      - dashboards
     ports:
       - "8080:80"
     networks:
       - opensearch-net
     environment:
-      - VITE_OPENSEARCH_URL=http://localhost:5601
+      - VITE_OPENSEARCH_URL=
+      - VITE_OPENSEARCH_DASHBOARDS_URL=
       - VITE_KAFKA_UI_URL=http://localhost:9090
+      - KEYCLOAK_URL=${KEYCLOAK_URL:-http://host.docker.internal:8080}
+      - KEYCLOAK_REALM=${KEYCLOAK_REALM:-master}
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-security-admin-console}
+      - KEYCLOAK_REDIRECT_URI=${KEYCLOAK_REDIRECT_URI:-}
+      - KEYCLOAK_LOGOUT_REDIRECT_URI=${KEYCLOAK_LOGOUT_REDIRECT_URI:-}
+      - OPENSEARCH_PROXY_TARGET=${OPENSEARCH_PROXY_TARGET:-http://196.188.249.46:9200}
+      - DASHBOARDS_PROXY_TARGET=${DASHBOARDS_PROXY_TARGET:-http://196.188.249.46:5601}
+      - DASHBOARDS_PROXY_PATH=${DASHBOARDS_PROXY_PATH:-}
+      - KUBERNETES_PROXY_TARGET=${KUBERNETES_PROXY_TARGET:-http://host.docker.internal:8001}
+      - KUBERNETES_PROXY_TOKEN=${KUBERNETES_PROXY_TOKEN:-}
+      - KUBERNETES_PROXY_CA_DATA=${KUBERNETES_PROXY_CA_DATA:-}
+      - KUBERNETES_PROXY_CLIENT_CERT_DATA=${KUBERNETES_PROXY_CLIENT_CERT_DATA:-}
+      - KUBERNETES_PROXY_CLIENT_KEY_DATA=${KUBERNETES_PROXY_CLIENT_KEY_DATA:-}
     restart: unless-stopped
 
 networks:

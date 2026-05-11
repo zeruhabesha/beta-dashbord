@@ -29,7 +29,7 @@ EXPOSE 80
 
 # Copy start script
 COPY env.sh /env.sh
-RUN chmod +x /env.sh
+RUN sed -i 's/\r$//' /env.sh && chmod +x /env.sh
 
 # Start Nginx
 CMD ["/env.sh", "nginx", "-g", "daemon off;"]

@@ -3,7 +3,8 @@ import {
     Settings, ChevronDown, ChevronRight, FileText,
     Map as MapIcon, Bell, Target, Lock, Server,
     Code, CreditCard, Eye, LayoutDashboard, Zap, Monitor, Network,
-    Globe, AlertTriangle, Terminal, ShieldAlert
+    Globe, AlertTriangle, Terminal, ShieldAlert,
+    GitBranch, BarChart2, Layers, Cpu, Wifi, Search, CheckCircle
 } from 'lucide-react';
 
 export const MODULE_CONFIG = {
@@ -18,6 +19,7 @@ export const MODULE_CONFIG = {
                 items: [
                     { id: 'home', label: 'Home', icon: Home },
                     { id: 'overview', label: 'SIEM Overview', icon: Home },
+                    { id: 'live-alerts', label: 'Live Alerts', icon: Bell },
                 ]
             },
             {
@@ -132,15 +134,66 @@ export const MODULE_CONFIG = {
                 items: [
                     { id: 'active-threats', label: 'Active Threats', icon: Zap },
                     { id: 'isolation', label: 'Host Isolation', icon: Monitor },
+                    { id: 'contained-threats', label: 'Contained Threats', icon: Shield },
+                    { id: 'response-dashboard', label: 'Response Dashboard', icon: LayoutDashboard },
+                    { id: 'response-center', label: 'Response Center', icon: Bell },
+                    { id: 'execution-control', label: 'Execution Control', icon: Terminal },
+                    { id: 'manual-operations', label: 'Manual Operations', icon: Eye },
+                    { id: 'approvals', label: 'Approval Queue', icon: Eye },
+                    { id: 'soc-override', label: 'SOC Override', icon: Lock },
+                    { id: 'rollback', label: 'Rollback Actions', icon: GitBranch },
+                    { id: 'response-metrics', label: 'Response Metrics', icon: BarChart2 },
                     { id: 'malware', label: 'Malware Analysis', icon: ShieldAlert },
+                ]
+            },
+            {
+                category: "Automation",
+                items: [
+                    { id: 'playbook-automation', label: 'Playbook Automation', icon: ShieldAlert },
+                    { id: 'playbook-orchestration', label: 'Playbook Flow', icon: GitBranch },
+                    { id: 'playbook-templates', label: 'Playbook Templates', icon: LayoutDashboard },
+                    { id: 'detection-pipeline', label: 'Detection Pipeline', icon: Terminal },
+                    { id: 'graduated-response', label: 'Graduated Response', icon: BarChart2 },
+                ]
+            },
+            {
+                category: "Governance",
+                items: [
+                    { id: 'safety-checks', label: 'Safety Checks', icon: Shield },
+                    { id: 'rate-limits', label: 'Rate Limits', icon: Activity },
+                    { id: 'audit-trail', label: 'Audit Trail', icon: FileText },
+                    { id: 'audit-compliance', label: 'Audit Compliance', icon: CreditCard },
+                ]
+            },
+            {
+                category: "Telemetry",
+                items: [
+                    { id: 'collected-artifacts', label: 'Collected Artifacts', icon: Database },
+                    { id: 'forensic-storage', label: 'Forensic Storage', icon: Database },
+                    { id: 'forensic-retention', label: 'Forensic Retention', icon: Database },
+                    { id: 'enhanced-forensics', label: 'Enhanced Forensics', icon: Search },
+                    { id: 'client-events', label: 'Client Events', icon: Activity },
+                    { id: 'server-events', label: 'Server Events', icon: Server },
                 ]
             },
             {
                 category: "Forensics",
                 items: [
                     { id: 'process-tree', label: 'Process Tree', icon: Activity },
+                    { id: 'hash-intelligence', label: 'Hash Intelligence', icon: Database },
                     { id: 'file-integrity', label: 'File Integrity', icon: FileText },
                     { id: 'hunting', label: 'Threat Hunting', icon: Target },
+                    { id: 'threat-hunting', label: 'Hunt Campaigns', icon: Target },
+                ]
+            },
+            {
+                category: "Platform",
+                items: [
+                    { id: 'integrations', label: 'Integrations', icon: Globe },
+                    { id: 'performance', label: 'Performance', icon: Cpu },
+                    { id: 'reliability', label: 'Reliability', icon: Wifi },
+                    { id: 'config-management', label: 'Configuration', icon: Settings },
+                    { id: 'testing-validation', label: 'Testing', icon: CheckCircle },
                 ]
             }
         ]
@@ -181,13 +234,84 @@ export const MODULE_CONFIG = {
                     { id: 'endpoints', label: 'Endpoint Status', icon: Server },
                     { id: 'active-threats', label: 'Active Threats', icon: Zap },
                     { id: 'isolation', label: 'Host Isolation', icon: Monitor },
+                    { id: 'containment-response', label: 'Containment & Response', icon: Shield },
+                    { id: 'response-dashboard', label: 'Response Dashboard', icon: LayoutDashboard },
+                    { id: 'execution-control', label: 'Execution Control', icon: Terminal },
+                    { id: 'manual-operations', label: 'Manual Operations', icon: Eye },
+                    { id: 'response-governance', label: 'Response Governance', icon: BarChart2 },
+                    { id: 'response-metrics', label: 'Response Metrics', icon: BarChart2 },
+                    { id: 'automation-ops', label: 'Automation Ops', icon: Bell },
+                    { id: 'playbook-ops', label: 'Playbook Ops', icon: GitBranch },
+                    { id: 'approvals', label: 'Approval Queue', icon: Eye },
+                    { id: 'safety-checks', label: 'Safety Checks', icon: Shield },
+                    { id: 'rate-limits', label: 'Rate Limits', icon: Activity },
+                    { id: 'soc-override', label: 'SOC Override', icon: Lock },
+                    { id: 'rollback', label: 'Rollback Actions', icon: GitBranch },
+                    { id: 'detection-health', label: 'Detection Health', icon: Terminal },
+                    { id: 'collected-artifacts', label: 'Collected Artifacts', icon: Database },
+                    { id: 'forensic-storage', label: 'Forensic Storage', icon: Database },
+                    { id: 'forensic-retention', label: 'Forensic Retention', icon: Database },
+                    { id: 'enhanced-forensics', label: 'Enhanced Forensics', icon: Search },
+                    { id: 'client-events', label: 'Client Events', icon: Activity },
+                    { id: 'server-events', label: 'Server Events', icon: Server },
+                    { id: 'incident-timeline', label: 'Incident Timeline', icon: Activity },
                     { id: 'hunting', label: 'Threat Hunting', icon: Target },
+                    { id: 'threat-hunting', label: 'Hunt Campaigns', icon: Target },
+                    { id: 'audit-trail', label: 'Audit Trail', icon: FileText },
+                    { id: 'audit-compliance', label: 'Audit Compliance', icon: CreditCard },
+                    { id: 'integrations', label: 'Integrations', icon: Globe },
+                    { id: 'performance', label: 'Performance', icon: Cpu },
+                    { id: 'reliability', label: 'Reliability', icon: Wifi },
+                    { id: 'config-management', label: 'Configuration', icon: Settings },
+                    { id: 'testing-validation', label: 'Testing', icon: CheckCircle },
                     { id: 'pci', label: 'PCI DSS', icon: CreditCard },
                     { id: 'gdpr', label: 'GDPR', icon: Lock },
                 ]
             }
         ]
+    },
+    observability: {
+        id: 'observability',
+        title: 'Observability',
+        defaultView: 'home',
+        menuStructure: [
+            {
+                category: "Main",
+                hideLabel: true,
+                items: [
+                    { id: 'home', label: 'OTel Overview', icon: Home },
+                    { id: 'cluster-health', label: 'Cluster Health', icon: Wifi },
+                ]
+            },
+            {
+                category: "Signals",
+                items: [
+                    { id: 'logs', label: 'Live Logs', icon: Layers },
+                    { id: 'traces', label: 'Distributed Traces', icon: GitBranch },
+                    { id: 'service-map', label: 'Service Map', icon: Globe },
+                ]
+            },
+            {
+                category: "Metrics",
+                items: [
+                    { id: 'metrics', label: 'Metrics Explorer', icon: BarChart2 },
+                    { id: 'resources', label: 'Resource Usage', icon: Cpu },
+                ]
+            },
+            {
+                category: "Explore",
+                items: [
+                    { id: 'discover', label: 'Discover', icon: Compass },
+                    { id: 'dashboards', label: 'Dashboards', icon: LayoutDashboard },
+                ]
+            },
+            {
+                category: "Administration",
+                items: [
+                    { id: 'indices', label: 'Index Overview', icon: Database },
+                    { id: 'tenants', label: 'Tenant Management', icon: Server },
+                ]
+            }
+        ]
     }
 };
-
-import { Search } from 'lucide-react';

@@ -1,152 +1,75 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Lock, User, AlertCircle, Eye, EyeOff, ArrowRight, Activity, Command } from 'lucide-react';
-import { login } from '../../api/opensearch';
+import React from 'react';
+import { AlertCircle, ArrowRight, Shield, KeyRound } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export function Login({ onLoginSuccess }) {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+export function Login({ onStartLogin, error, isAuthenticating = false }) {
+    const hasStartedRef = React.useRef(false);
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setError(null);
-        setIsLoading(true);
-
-        try {
-            if (!username || !password) {
-                throw new Error("Please enter both username and password.");
-            }
-
-            // Simulate loading
-            const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
-            const loginRequest = login(username, password);
-            const [user] = await Promise.all([loginRequest, minLoadTime]);
-
-            onLoginSuccess(user.username);
-        } catch (err) {
-            console.error(err);
-            setError(err.message || "Authentication failed. Check credentials.");
-        } finally {
-            setIsLoading(false);
+    React.useEffect(() => {
+        if (!onStartLogin || error || isAuthenticating || hasStartedRef.current) {
+            return;
         }
-    };
+
+        hasStartedRef.current = true;
+
+        const timerId = window.setTimeout(() => {
+            onStartLogin();
+        }, 150);
+
+        return () => {
+            window.clearTimeout(timerId);
+        };
+    }, [error, isAuthenticating, onStartLogin]);
 
     return (
-        <div className="h-screen w-screen flex items-center justify-center bg-slate-50 overflow-hidden relative font-sans text-slate-800">
-            {/* Simple Grid Overlay */}
+        <div className="app-viewport-scale flex items-center justify-center bg-background overflow-hidden relative font-sans text-foreground">
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:32px_32px]" />
 
-            {/* Main Login Card */}
-            <div className="relative z-10 w-full max-w-[400px] mx-4">
-                <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-8 relative overflow-hidden transition-all">
+            <div className="relative z-10 w-full max-w-[420px] mx-4">
+                <Card className="relative overflow-hidden rounded-2xl shadow-sm transition-all">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-neutral-950 dark:bg-white" />
 
-                    {/* Top Accent Line - Solid Blue */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600" />
-
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-blue-600 mb-4 shadow-md border border-blue-700/10">
-                            <span className="text-2xl font-black text-white tracking-tight">BETA</span>
+                    <CardHeader className="items-center text-center">
+                        <div className="inline-flex items-center justify-center size-16 rounded-xl bg-primary mb-2 shadow-md border border-primary/10">
+                            <Shield className="text-primary-foreground" size={28} />
                         </div>
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 mb-2">Welcome Back</h1>
-                        <p className="text-slate-500 text-sm">Sign in to access the Security Dashboard</p>
-                    </div>
+                        <CardTitle className="text-2xl font-bold tracking-tight">Sign In With Keycloak</CardTitle>
+                        <CardDescription>
+                            Authentication is handled by your Keycloak realm. You will be redirected to continue.
+                        </CardDescription>
+                    </CardHeader>
 
-                    {/* Form */}
-                    <form onSubmit={handleLogin} className="space-y-5">
+                    <CardContent className="flex flex-col gap-4">
                         {error && (
-                            <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-start gap-3 text-red-600 text-sm animate-[shake_0.4s_ease-in-out]">
-                                <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                                <span className="font-medium">{error}</span>
-                            </div>
+                            <Alert variant="destructive">
+                                <AlertCircle size={18} />
+                                <AlertDescription className="font-medium">{error}</AlertDescription>
+                            </Alert>
                         )}
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Username</label>
-                                <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                                        <User size={18} />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        className="w-full bg-slate-50 border border-slate-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl py-3 pl-10 pr-4 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                                        placeholder="Enter your username"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        disabled={isLoading}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="flex items-center justify-between mb-1.5 ml-1">
-                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Password</label>
-                                    <a href="#" className="text-xs text-blue-600 hover:text-blue-700 font-medium">Forgot password?</a>
-                                </div>
-                                <div className="relative group">
-                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors">
-                                        <Lock size={18} />
-                                    </div>
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        className="w-full bg-slate-50 border border-slate-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-xl py-3 pl-10 pr-10 outline-none transition-all text-slate-900 placeholder:text-slate-400"
-                                        placeholder="••••••••"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        disabled={isLoading}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className={`
-                                w-full flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold py-3.5 rounded-xl transition-all shadow-sm
-                                ${isLoading ? 'opacity-80 cursor-not-allowed' : 'active:translate-y-[1px]'}
-                            `}
-                        >
-                            {isLoading ? (
+                        <Button type="button" onClick={onStartLogin} disabled={isAuthenticating} size="lg" className="w-full rounded-xl">
+                            {isAuthenticating ? (
                                 <>
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    <span>Signing in...</span>
+                                    <div className="size-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                                    <span>Redirecting to Keycloak...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Sign In</span>
+                                    <KeyRound size={18} />
+                                    <span>Continue With Keycloak</span>
                                     <ArrowRight size={18} />
                                 </>
                             )}
-                        </button>
-                    </form>
-                </div>
+                        </Button>
 
-                {/* Footer Link */}
-                <div className="mt-8 text-center">
-                    <p className="text-slate-500 text-sm">
-                        Don't have an account? <a href="#" className="text-blue-600 font-semibold hover:underline">Contact Admin</a>
-                    </p>
-                </div>
+                        <Alert variant="muted" className="px-4 py-3 text-xs">
+                            If the redirect does not start automatically, use the button above.
+                        </Alert>
+                    </CardContent>
+                </Card>
             </div>
-
-            <style>{`
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-4px); }
-                    75% { transform: translateX(4px); }
-                }
-            `}</style>
         </div>
     );
 }

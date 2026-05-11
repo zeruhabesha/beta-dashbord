@@ -4,28 +4,37 @@ import {
     CheckCircle, BarChart2, Zap, Wifi
 } from 'lucide-react';
 import { fetchAggregatedCounts, fetchVolumeOverTime } from '../../api/opensearch';
+import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from '@/components/ui/select';
 
 // Reusable Card Component
 const StatCard = ({ title, value, subtext, icon: Icon, color, trend }) => (
-    <div className="bg-white dark:bg-[#1e1e24] p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-white/5 relative overflow-hidden group hover:shadow-md transition-all duration-300">
-        <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity ${color}`}>
+    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-300 hover:border-neutral-950/20 hover:shadow-md dark:border-white/10 dark:bg-black">
+        <div className="absolute top-0 right-0 p-3 text-neutral-950 opacity-5 transition-opacity group-hover:opacity-10 dark:text-white">
             <Icon size={80} />
         </div>
         <div className="relative z-10 flex flex-col h-full justify-between">
             <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-opacity-10 ${color} bg-current`}>
-                    <Icon size={24} className={color.replace('text-', '')} />
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-neutral-950 dark:border-white/10 dark:bg-white/10 dark:text-white">
+                    <Icon size={24} />
                 </div>
                 {trend && (
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${trend > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                    <span className="rounded-full border border-neutral-200 bg-white px-2 py-1 text-xs font-semibold text-neutral-950 dark:border-white/10 dark:bg-black dark:text-white">
                         {trend > 0 ? '+' : ''}{trend}%
                     </span>
                 )}
             </div>
             <div>
-                <h3 className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider mb-1">{title}</h3>
-                <div className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{value}</div>
-                {subtext && <p className="text-xs text-slate-400 dark:text-slate-500">{subtext}</p>}
+                <h3 className="text-neutral-500 dark:text-neutral-400 text-sm font-medium uppercase tracking-wider mb-1">{title}</h3>
+                <div className="text-3xl font-bold text-neutral-950 dark:text-white mb-2">{value}</div>
+                {subtext && <p className="text-xs text-neutral-400 dark:text-neutral-500">{subtext}</p>}
             </div>
         </div>
     </div>
@@ -58,15 +67,15 @@ export function SecurityOverview() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full w-full bg-[#f6f8fa] dark:bg-[#09090b]">
+            <div className="flex h-full w-full flex-col items-center justify-center bg-neutral-50 dark:bg-black">
                 <div className="relative">
                     {/* Animated rings */}
-                    <div className="absolute inset-0 rounded-full border-4 border-blue-500/20 animate-ping"></div>
-                    <div className="absolute inset-0 rounded-full border-4 border-t-blue-500 border-r-purple-500 border-b-cyan-500 border-l-indigo-500 animate-spin"></div>
+                    <div className="absolute inset-0 animate-ping rounded-full border-4 border-neutral-950/10 dark:border-white/10"></div>
+                    <div className="absolute inset-0 animate-spin rounded-full border-4 border-neutral-200 border-t-neutral-950 dark:border-neutral-800 dark:border-t-white"></div>
 
                     {/* BETA Logo/Text */}
                     <div className="relative w-20 h-20 flex items-center justify-center">
-                        <div className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        <div className="text-2xl font-black text-neutral-950 dark:text-white">
                             BETA
                         </div>
                     </div>
@@ -74,13 +83,13 @@ export function SecurityOverview() {
 
                 {/* Loading text */}
                 <div className="mt-6 text-center">
-                    <p className="text-slate-600 dark:text-slate-400 font-semibold text-sm mb-1">
+                    <p className="text-neutral-600 dark:text-neutral-400 font-semibold text-sm mb-1">
                         Loading Security Dashboard
                     </p>
                     <div className="flex items-center justify-center gap-1">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                        <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                        <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-neutral-950 dark:bg-white" style={{ animationDelay: '0ms' }}></span>
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-neutral-500" style={{ animationDelay: '150ms' }}></span>
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-neutral-300 dark:bg-neutral-700" style={{ animationDelay: '300ms' }}></span>
                     </div>
                 </div>
             </div>
@@ -88,26 +97,26 @@ export function SecurityOverview() {
     }
 
     return (
-        <div className="h-full w-full overflow-y-auto p-8 bg-[#f6f8fa] dark:bg-[#09090b] text-slate-900 dark:text-slate-100 font-sans custom-scrollbar">
+        <div className="h-full w-full overflow-y-auto bg-neutral-50 p-8 font-sans text-neutral-950 custom-scrollbar dark:bg-black dark:text-white">
 
             {/* Header Section */}
             <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+                    <h1 className="text-3xl font-bold text-neutral-950 dark:text-white">
                         Security Posture Overview
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2">
+                    <p className="text-neutral-500 dark:text-neutral-400 mt-2">
                         Real-time visualization of your security infrastructure and active threats.
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="flex items-center gap-2 rounded-lg border border-success/30 bg-success/10 px-3 py-1.5 text-sm font-medium text-success">
+                        <span className="h-2 w-2 animate-pulse rounded-full bg-success" />
                         System Healthy
                     </span>
-                    <button className="px-4 py-2 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/10 transition-colors">
+                    <Button variant="outline">
                         Download Report
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -118,7 +127,7 @@ export function SecurityOverview() {
                     value={stats.scanned}
                     subtext="Last 24 hours"
                     icon={Activity}
-                    color="text-blue-500"
+                    color="text-neutral-950"
                     trend={12}
                 />
                 <StatCard
@@ -126,7 +135,7 @@ export function SecurityOverview() {
                     value={stats.threats}
                     subtext="Requires attention"
                     icon={AlertTriangle}
-                    color="text-orange-500"
+                    color="text-neutral-950"
                     trend={-5}
                 />
                 <StatCard
@@ -134,7 +143,7 @@ export function SecurityOverview() {
                     value={stats.blocked}
                     subtext="Auto-mitigation rate"
                     icon={Shield}
-                    color="text-green-500"
+                    color="text-neutral-950"
                     trend={0.2}
                 />
                 <StatCard
@@ -142,7 +151,7 @@ export function SecurityOverview() {
                     value={stats.active_agents}
                     subtext="98% coverage"
                     icon={Server}
-                    color="text-purple-500"
+                    color="text-neutral-950"
                     trend={2}
                 />
             </div>
@@ -151,24 +160,31 @@ export function SecurityOverview() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
                 {/* Main Chart Area */}
-                <div className="lg:col-span-2 bg-white dark:bg-[#1e1e24] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/5">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <BarChart2 size={20} className="text-blue-500" />
+                            <BarChart2 size={20} className="text-neutral-950 dark:text-white" />
                             Threat Detection Volume
                         </h2>
-                        <select className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-sm px-3 py-1 outline-none">
-                            <option>Last 24 Hours</option>
-                            <option>Last 7 Days</option>
-                            <option>Last 30 Days</option>
-                        </select>
+                        <Select defaultValue="24h">
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="24h">Last 24 Hours</SelectItem>
+                                    <SelectItem value="7d">Last 7 Days</SelectItem>
+                                    <SelectItem value="30d">Last 30 Days</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                     </div>
                     {/* Placeholder for Chart - In a real app use Recharts/Victory */}
                     <div className="h-64 flex items-end justify-between gap-2 px-2">
                         {[40, 65, 45, 80, 55, 70, 40, 60, 85, 50, 45, 75].map((h, i) => (
-                            <div key={i} className="w-full bg-blue-500/10 hover:bg-blue-500/20 rounded-t-sm relative group transition-all duration-300" style={{ height: `${h}%` }}>
-                                <div className="absolute bottom-0 w-full bg-blue-500 rounded-t-sm transition-all duration-500" style={{ height: `${h * 0.4}%` }}></div>
-                                <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs py-1 px-2 rounded pointer-events-none transition-opacity">
+                            <div key={i} className="group relative w-full rounded-t-sm bg-neutral-100 transition-all duration-300 hover:bg-neutral-200 dark:bg-neutral-900 dark:hover:bg-neutral-800" style={{ height: `${h}%` }}>
+                                <div className="absolute bottom-0 w-full rounded-t-sm bg-neutral-950 transition-all duration-500 dark:bg-white" style={{ height: `${h * 0.4}%` }}></div>
+                                <div className="pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 rounded bg-black px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-white dark:text-black">
                                     {Math.floor(h * 12)} events
                                 </div>
                             </div>
@@ -177,28 +193,28 @@ export function SecurityOverview() {
                 </div>
 
                 {/* Status List */}
-                <div className="bg-white dark:bg-[#1e1e24] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/5">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black">
                     <h2 className="text-lg font-semibold flex items-center gap-2 mb-6">
-                        <Wifi size={20} className="text-purple-500" />
+                        <Wifi size={20} className="text-neutral-950 dark:text-white" />
                         System Health
                     </h2>
                     <div className="space-y-4">
                         {[
-                            { name: 'SIEM Engine', status: 'Optimal', color: 'bg-green-500' },
-                            { name: 'IDS Sensors', status: 'Optimal', color: 'bg-green-500' },
-                            { name: 'EDR Agents', status: 'Warning', color: 'bg-yellow-500', sub: '3 agents offline' },
-                            { name: 'Log Ingestion', status: 'Optimal', color: 'bg-green-500' },
-                            { name: 'Threat Intel Feed', status: 'Syncing', color: 'bg-blue-500', animate: true },
+                            { name: 'SIEM Engine', status: 'Optimal', color: 'bg-success' },
+                            { name: 'IDS Sensors', status: 'Optimal', color: 'bg-success' },
+                            { name: 'EDR Agents', status: 'Warning', color: 'bg-destructive', sub: '3 agents offline' },
+                            { name: 'Log Ingestion', status: 'Optimal', color: 'bg-success' },
+                            { name: 'Threat Intel Feed', status: 'Syncing', color: 'bg-neutral-400', animate: true },
                         ].map((item, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                            <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 dark:bg-white/5 hover:bg-neutral-100 dark:hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-2.5 h-2.5 rounded-full ${item.color} ${item.animate ? 'animate-pulse' : ''}`} />
                                     <div>
                                         <div className="text-sm font-medium">{item.name}</div>
-                                        {item.sub && <div className="text-xs text-slate-400">{item.sub}</div>}
+                                        {item.sub && <div className="text-xs text-neutral-400">{item.sub}</div>}
                                     </div>
                                 </div>
-                                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{item.status}</span>
+                                <span className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">{item.status}</span>
                             </div>
                         ))}
                     </div>
@@ -206,18 +222,18 @@ export function SecurityOverview() {
             </div>
 
             {/* Recent Alerts Table styled as Cards */}
-            <div className="bg-white dark:bg-[#1e1e24] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-white/5">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Zap size={20} className="text-orange-500" />
+                        <Zap size={20} className="text-neutral-950 dark:text-white" />
                         Recent Critical Alerts
                     </h2>
-                    <a href="#" className="text-sm text-blue-500 hover:text-blue-400 font-medium">View All</a>
+                    <a href="#" className="text-sm font-medium text-neutral-950 underline-offset-4 hover:underline dark:text-white">View All</a>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="text-xs text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
+                            <tr className="text-xs text-neutral-400 uppercase tracking-wider border-b border-neutral-100 dark:border-white/5">
                                 <th className="pb-3 pl-2 font-medium">Severity</th>
                                 <th className="pb-3 font-medium">Alert Name</th>
                                 <th className="pb-3 font-medium">Source</th>
@@ -232,20 +248,20 @@ export function SecurityOverview() {
                                 { severity: 'Medium', name: 'Unusual outbound traffic volume', source: 'DB-Server-01', time: '1 hour ago', action: 'Investigating' },
                                 { severity: 'Critical', name: 'Root privileges escalation', source: 'Web-Server-Prod', time: '3 hours ago', action: 'Alerted' },
                             ].map((alert, i) => (
-                                <tr key={i} className="group border-b border-slate-100/50 dark:border-white/5 last:border-0 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                <tr key={i} className="group border-b border-neutral-100/50 dark:border-white/5 last:border-0 hover:bg-neutral-50 dark:hover:bg-white/5 transition-colors">
                                     <td className="py-4 pl-2">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${alert.severity === 'Critical' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                            alert.severity === 'High' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
-                                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${alert.severity === 'Critical' ? 'bg-destructive text-destructive-foreground' :
+                                            alert.severity === 'High' ? 'border border-destructive/30 bg-destructive/10 text-destructive' :
+                                                'border border-neutral-300 bg-neutral-100 text-neutral-950 dark:border-neutral-600 dark:bg-neutral-900 dark:text-white'
                                             }`}>
                                             {alert.severity}
                                         </span>
                                     </td>
                                     <td className="py-4 font-medium">{alert.name}</td>
-                                    <td className="py-4 text-slate-500 dark:text-slate-400 font-mono text-xs">{alert.source}</td>
-                                    <td className="py-4 text-slate-500 dark:text-slate-400">{alert.time}</td>
+                                    <td className="py-4 text-neutral-500 dark:text-neutral-400 font-mono text-xs">{alert.source}</td>
+                                    <td className="py-4 text-neutral-500 dark:text-neutral-400">{alert.time}</td>
                                     <td className="py-4 text-right pr-2">
-                                        <button className="text-xs font-medium text-blue-500 hover:text-blue-400 hover:underline">
+                                        <button className="text-xs font-medium text-neutral-950 underline-offset-4 hover:underline dark:text-white">
                                             Details
                                         </button>
                                     </td>

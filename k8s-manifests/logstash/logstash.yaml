@@ -29,7 +29,7 @@ data:
       }
       output {
         opensearch {
-          hosts => ["http://opensearch:9200"]
+          hosts => ["http://196.188.249.46:9200"]
           index => "tenant_01_%{target_index_prefix}-%{+YYYY.MM.dd}"
           auth_type => "none"
         }
