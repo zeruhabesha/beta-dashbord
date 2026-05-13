@@ -17,6 +17,22 @@ function runtimeEnv() {
     return window._env_ || {};
 }
 
+function envFlag(value, fallback = false) {
+    if (value === undefined || value === null || value === '') {
+        return fallback;
+    }
+
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+export function isSecurityServicesEnabled() {
+    const env = runtimeEnv();
+    return envFlag(
+        env.SECURITY_SERVICES_ENABLED ?? import.meta.env.VITE_SECURITY_SERVICES_ENABLED,
+        false
+    );
+}
+
 function serviceBaseUrl(service) {
     const env = runtimeEnv();
     const envMap = {
@@ -75,6 +91,10 @@ async function buildHeaders(extraHeaders = {}) {
 }
 
 export async function callSecurityService(service, path, options = {}) {
+    if (!isSecurityServicesEnabled()) {
+        throw new Error('Response automation APIs are disabled. Set VITE_SECURITY_SERVICES_ENABLED=true and configure the service proxy targets when playbook/response services are running.');
+    }
+
     const {
         method = 'GET',
         query,
@@ -95,6 +115,10 @@ export async function callSecurityService(service, path, options = {}) {
 }
 
 export async function downloadSecurityServiceFile(service, path, options = {}) {
+    if (!isSecurityServicesEnabled()) {
+        throw new Error('Response automation APIs are disabled. Set VITE_SECURITY_SERVICES_ENABLED=true and configure the service proxy targets when playbook/response services are running.');
+    }
+
     const headers = await buildHeaders();
     const response = await fetch(`${serviceBaseUrl(service)}${withQuery(path, options.query)}`, {
         method: 'GET',

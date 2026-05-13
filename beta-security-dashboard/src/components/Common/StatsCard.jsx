@@ -43,7 +43,7 @@ export const StatsCard = ({
     }
 
     return (
-        <Card className="group transition-all duration-200 hover:border-primary/30 hover:shadow-lg">
+        <Card className="group transition-colors duration-200 hover:border-primary/30">
             <CardContent className="p-6">
                 <div className="mb-4 flex items-start justify-between">
                     <div className="flex-1">
@@ -54,7 +54,7 @@ export const StatsCard = ({
                 </div>
                 {Icon && (
                     <div className={cn(
-                        "p-3 rounded-lg border transition-all duration-200 group-hover:scale-110",
+                        "rounded-lg border p-3 transition-colors duration-200",
                         colorClasses[color]
                     )}>
                         <Icon size={20} />

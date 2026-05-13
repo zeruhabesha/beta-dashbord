@@ -8,13 +8,13 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                default: 'bg-gradient-to-r from-primary to-info text-primary-foreground shadow-sm shadow-primary/25 hover:brightness-105',
-                destructive: 'bg-gradient-to-r from-destructive to-status-high text-destructive-foreground shadow-sm shadow-destructive/25 hover:brightness-105',
-                success: 'bg-gradient-to-r from-success to-emerald-500 text-success-foreground shadow-sm shadow-success/25 hover:brightness-105',
-                warning: 'bg-gradient-to-r from-warning to-amber-500 text-warning-foreground shadow-sm shadow-warning/25 hover:brightness-105',
-                info: 'bg-gradient-to-r from-info to-primary text-info-foreground shadow-sm shadow-info/25 hover:brightness-105',
-                accent: 'bg-gradient-to-r from-accent-primary to-accent-secondary text-white shadow-sm shadow-primary/25 hover:brightness-105',
-                cancel: 'border border-destructive bg-background text-destructive hover:bg-destructive hover:text-destructive-foreground',
+                default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+                destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+                success: 'bg-success text-success-foreground hover:bg-success/90',
+                warning: 'bg-warning text-warning-foreground hover:bg-warning/90',
+                info: 'bg-info text-info-foreground hover:bg-info/90',
+                accent: 'bg-primary text-primary-foreground hover:bg-primary/90',
+                cancel: 'border border-input bg-background text-foreground hover:bg-muted hover:text-foreground',
                 outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
                 infoOutline: 'border border-info/40 bg-info/10 text-info hover:bg-info hover:text-info-foreground',
                 warningOutline: 'border border-warning/40 bg-warning/10 text-warning hover:bg-warning hover:text-warning-foreground',

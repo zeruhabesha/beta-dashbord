@@ -73,6 +73,14 @@ function fallbackTimeFieldForModule(moduleId) {
     return '@timestamp';
 }
 
+function stripHashFromUrl(url) {
+    return String(url || '').split('#')[0];
+}
+
+function looksLikeOpenSearchDashboardsHtml(html) {
+    return /opensearch|dashboards|core\.entry|bootstrap\.js|window\.__osd/i.test(String(html || ''));
+}
+
 function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetry }) {
     const isLoading = dataViewState.status === 'idle' || dataViewState.status === 'loading';
     const requestedTitles = dataViewState.requestedTitles?.join(', ') || 'module data view';
@@ -80,21 +88,21 @@ function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetr
     return (
         <div className="flex-1 overflow-y-auto p-6 bg-bg-body">
             <div className="mx-auto flex min-h-full max-w-5xl items-center justify-center">
-                <Card className="w-full overflow-hidden rounded-[28px] border-info/25 bg-card/95 shadow-2xl shadow-info/10">
-                    <CardHeader className="border-b border-border/70 bg-gradient-to-br from-info/15 via-background to-warning/10">
+                <Card className="w-full overflow-hidden border-info/25">
+                    <CardHeader className="border-b border-border/70 bg-muted/20">
                         <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-info/15 text-info ring-1 ring-info/25">
-                            <Database className="h-7 w-7" />
+                            {isLoading ? <RefreshCw className="h-7 w-7 animate-spin" /> : <ShieldAlert className="h-7 w-7" />}
                         </div>
                         <CardTitle className="text-3xl font-black tracking-tight text-foreground">
-                            Preparing OpenSearch data view
+                            Preparing BETA Data View
                         </CardTitle>
                         <CardDescription className="text-base font-semibold text-muted-foreground">
-                            {moduleTitle} / {viewTitle} is waiting for a valid global tenant data view before the embedded dashboard loads.
+                            {moduleTitle} / {viewTitle} is loading the required data view for the embedded dashboard.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-5 p-6">
+                    <CardContent className="flex flex-col gap-5 p-6">
                         {isLoading ? (
-                            <div className="space-y-3">
+                            <div className="flex flex-col gap-3">
                                 <Skeleton className="h-4 w-2/3 bg-info/20" />
                                 <Skeleton className="h-4 w-1/2 bg-info/15" />
                                 <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
@@ -102,7 +110,7 @@ function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetr
                         ) : (
                             <Alert variant="warning" className="rounded-2xl">
                                 <ShieldAlert className="h-4 w-4" />
-                                <AlertTitle>OpenSearch data view was not ready</AlertTitle>
+                                <AlertTitle>Data view was not ready</AlertTitle>
                                 <AlertDescription>
                                     {dataViewState.error || 'The saved object lookup failed.'}
                                 </AlertDescription>
@@ -117,13 +125,13 @@ function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetr
                                 {requestedTitles}
                             </p>
                             <p className="mt-3 text-sm font-medium text-muted-foreground">
-                                This guard prevents OpenSearch Dashboards from redirecting the iframe to Index Patterns Management while the data view is missing or being repaired.
+                                This guard prevents the embedded dashboard from redirecting while the data view is missing or being repaired.
                             </p>
                         </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <p className="text-sm font-semibold text-muted-foreground">
-                                The UI will create or repair the saved object through the same-origin Dashboards API.
+                                BETA will create or repair the saved object through the same-origin API.
                             </p>
                             <Button
                                 type="button"
@@ -133,6 +141,75 @@ function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetr
                             >
                                 <RefreshCw className="h-4 w-4" />
                                 Retry repair
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
+function OpenSearchFrameGuard({ frameState, dashboardUrl, onRetry }) {
+    const isChecking = frameState.status === 'idle' || frameState.status === 'checking';
+    const checkedUrl = frameState.checkedUrl || stripHashFromUrl(dashboardUrl);
+
+    return (
+        <div className="flex-1 overflow-y-auto p-6 bg-bg-body">
+            <div className="mx-auto flex min-h-full max-w-5xl items-center justify-center">
+                <Card className="w-full overflow-hidden border-warning/30">
+                    <CardHeader className="border-b border-border/70 bg-muted/20">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/15 text-warning ring-1 ring-warning/25">
+                            {isChecking ? <RefreshCw className="h-7 w-7 animate-spin" /> : <Database className="h-7 w-7" />}
+                        </div>
+                        <CardTitle className="text-3xl font-black tracking-tight text-foreground">
+                            Checking OpenSearch Proxy
+                        </CardTitle>
+                        <CardDescription className="text-base font-semibold text-muted-foreground">
+                            The embedded dashboard is loaded only after the same-origin proxy returns OpenSearch Dashboards HTML.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-5 p-6">
+                        {isChecking ? (
+                            <div className="flex flex-col gap-3">
+                                <Skeleton className="h-4 w-2/3 bg-warning/20" />
+                                <Skeleton className="h-4 w-1/2 bg-warning/15" />
+                                <Skeleton className="h-24 w-full rounded-2xl bg-muted" />
+                            </div>
+                        ) : (
+                            <Alert variant="warning" className="rounded-2xl">
+                                <ShieldAlert className="h-4 w-4" />
+                                <AlertTitle>OpenSearch iframe route is not ready</AlertTitle>
+                                <AlertDescription>
+                                    {frameState.error || 'The iframe preflight failed before OpenSearch Dashboards could be embedded.'}
+                                </AlertDescription>
+                            </Alert>
+                        )}
+
+                        <div className="rounded-2xl border border-border/70 bg-muted/40 p-5">
+                            <p className="text-xs font-black uppercase tracking-[0.22em] text-muted-foreground">
+                                Checked route
+                            </p>
+                            <p className="mt-2 break-words font-mono text-sm font-semibold text-foreground">
+                                {checkedUrl || 'OpenSearch Dashboards route'}
+                            </p>
+                            <p className="mt-3 text-sm font-medium text-muted-foreground">
+                                This prevents Chrome from rendering an internal error frame when `/app`, `/api`, or OpenSearch Dashboards is unreachable.
+                            </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-muted-foreground">
+                                If this repeats, run `npm run opensearch:repair` and restart `npm run dev`.
+                            </p>
+                            <Button
+                                type="button"
+                                variant={isChecking ? 'infoOutline' : 'warning'}
+                                onClick={onRetry}
+                                disabled={isChecking}
+                            >
+                                <RefreshCw className="h-4 w-4" />
+                                Retry iframe check
                             </Button>
                         </div>
                     </CardContent>
@@ -195,6 +272,11 @@ function App() {
         requestedTitles: []
     });
     const [dataViewRetryKey, setDataViewRetryKey] = useState(0);
+    const [dashboardsProxyState, setDashboardsProxyState] = useState({
+        status: 'idle',
+        error: '',
+        checkedUrl: ''
+    });
     const [authStatus, setAuthStatus] = useState('loading');
     const [authError, setAuthError] = useState('');
     const [isManualResponseOpen, setIsManualResponseOpen] = useState(false);
@@ -204,12 +286,8 @@ function App() {
     const frameRecoveryAttemptsRef = React.useRef(0);
     const [openSearchFrameRecoveryKey, setOpenSearchFrameRecoveryKey] = useState(0);
     const pageShellStyle = isDarkMode
-        ? {
-            background: 'radial-gradient(circle at 0% 0%, rgba(96,165,250,0.18), transparent 30rem), radial-gradient(circle at 100% 0%, rgba(167,139,250,0.16), transparent 30rem), linear-gradient(180deg, #06111f 0%, #111827 100%)'
-        }
-        : {
-            background: 'radial-gradient(circle at 0% 0%, rgba(37,99,235,0.18), transparent 30rem), radial-gradient(circle at 100% 0%, rgba(124,58,237,0.14), transparent 30rem), linear-gradient(180deg, #eef5ff 0%, #fff7ed 100%)'
-        };
+        ? { background: 'var(--bg-body)' }
+        : { background: 'var(--bg-body)' };
     const moduleOpenSearchView = getModuleOpenSearchView(activeModuleId, activeView);
     const activeAlertFocus = alertFocus?.moduleId === activeModuleId && alertFocus?.viewId === activeView ? alertFocus : null;
     const activeDataViewTitles = activeAlertFocus?.dataViewTitles?.length
@@ -551,6 +629,80 @@ function App() {
         return viewRoutes[activeView] || viewRoutes['default'];
     };
 
+    const dashboardUrl = getDashboardUrl();
+
+    React.useEffect(() => {
+        let cancelled = false;
+
+        if (appState !== 'dashboard' || !moduleOpenSearchView || shouldGuardOpenSearchFrame) {
+            setDashboardsProxyState({
+                status: 'idle',
+                error: '',
+                checkedUrl: ''
+            });
+            return undefined;
+        }
+
+        const checkedUrl = stripHashFromUrl(dashboardUrl);
+
+        setDashboardsProxyState({
+            status: 'checking',
+            error: '',
+            checkedUrl
+        });
+
+        fetch(checkedUrl, {
+            method: 'GET',
+            cache: 'no-store',
+            credentials: 'same-origin',
+            headers: {
+                'osd-xsrf': 'true'
+            }
+        })
+            .then(async (response) => {
+                const body = await response.text().catch(() => '');
+
+                if (!response.ok) {
+                    throw new Error(`OpenSearch proxy returned HTTP ${response.status} for ${checkedUrl}.`);
+                }
+
+                if (!looksLikeOpenSearchDashboardsHtml(body)) {
+                    throw new Error(
+                        `The iframe route ${checkedUrl} did not return OpenSearch Dashboards HTML. ` +
+                        'Another dev server or the React fallback may be serving the route.'
+                    );
+                }
+            })
+            .then(() => {
+                if (!cancelled) {
+                    setDashboardsProxyState({
+                        status: 'ready',
+                        error: '',
+                        checkedUrl
+                    });
+                }
+            })
+            .catch((error) => {
+                if (!cancelled) {
+                    setDashboardsProxyState({
+                        status: 'error',
+                        error: error.message || 'OpenSearch iframe route preflight failed.',
+                        checkedUrl
+                    });
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [appState, dashboardUrl, moduleOpenSearchView, openSearchFrameRecoveryKey, shouldGuardOpenSearchFrame]);
+
+    const shouldGuardOpenSearchProxy = Boolean(
+        moduleOpenSearchView
+        && !shouldGuardOpenSearchFrame
+        && dashboardsProxyState.status !== 'ready'
+    );
+
     // --- Authentication Flow ---
     if (appState === 'login') {
         return (
@@ -636,31 +788,31 @@ function App() {
 
                 {/* Centered Logout Confirmation Dialog */}
                 {isLogoutDialogOpen && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div 
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" 
+                            className="absolute inset-0 bg-background/80 animate-in fade-in duration-300" 
                             onClick={() => setIsLogoutDialogOpen(false)}
                         />
-                        <div className="relative w-full max-w-sm bg-bg-sidebar border border-border-subtle rounded-2xl shadow-xl p-6 animate-in zoom-in duration-200">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-12 h-12 rounded-full bg-status-critical/10 flex items-center justify-center text-status-critical">
+                        <div className="relative w-full max-w-sm rounded-xl border bg-background p-6 animate-in zoom-in duration-200">
+                            <div className="mb-6 flex items-center gap-4">
+                                <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
                                     <LogOut size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-text-main">Sign Out?</h3>
-                                    <p className="text-sm text-text-muted">You will be logged out of your session.</p>
+                                    <h3 className="text-lg font-bold text-foreground">Sign Out?</h3>
+                                    <p className="text-sm text-muted-foreground">You will be logged out of your session.</p>
                                 </div>
                             </div>
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setIsLogoutDialogOpen(false)}
-                                    className="flex-1 px-4 py-2 rounded-xl border border-border-subtle text-sm font-semibold text-text-main hover:bg-white/5 transition-colors"
+                                    className="flex-1 rounded-md border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex-1 px-4 py-2 rounded-xl bg-status-critical text-white text-sm font-semibold hover:bg-status-critical/90 transition-colors"
+                                    className="flex-1 rounded-md bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
                                 >
                                     Logout
                                 </button>
@@ -707,7 +859,7 @@ function App() {
                             <SiemAlerts timeRange={timeRange} searchQuery={searchQuery} />
                         </div>
                     ) : shouldRenderCmtDashboard ? (
-                        <div className="flex-1 overflow-y-auto p-6" style={pageShellStyle}>
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-5 lg:p-6" style={pageShellStyle}>
                             <CmtDashboard view={normalizeCmtView(activeView)} moduleId={activeModuleId} />
                         </div>
                     ) : shouldRenderSocAutomationPage ? (
@@ -731,14 +883,22 @@ function App() {
                                 onRetry={() => setDataViewRetryKey((value) => value + 1)}
                             />
                         </div>
+                    ) : shouldGuardOpenSearchProxy ? (
+                        <div className="flex-1 overflow-hidden relative" style={pageShellStyle}>
+                            <OpenSearchFrameGuard
+                                frameState={dashboardsProxyState}
+                                dashboardUrl={dashboardUrl}
+                                onRetry={() => setOpenSearchFrameRecoveryKey((value) => value + 1)}
+                            />
+                        </div>
                     ) : (
                         /* OpenSearch Dashboards Frame */
                         <div className="flex-1 overflow-hidden relative p-4 bg-bg-body">
-                            <div className="w-full h-full relative overflow-hidden bg-black rounded-xl shadow-2xl">
+                            <div className="relative h-full w-full overflow-hidden rounded-xl border bg-black">
                                 <iframe
                                     ref={openSearchFrameRef}
                                     key={openSearchFrameKey}
-                                    src={getDashboardUrl()}
+                                    src={dashboardUrl}
                                     className={iframeClassName}
                                     title={`OpenSearch Dashboard - ${activeView}`}
                                     onLoad={recoverFromOpenSearchManagementRedirect}

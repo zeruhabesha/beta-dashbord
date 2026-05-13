@@ -12,8 +12,7 @@ export function TeamSelector({ onSelectTeam }) {
             description: 'Monitor alerts, logs, and compliance in real-time.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
-            border: 'hover:border-neutral-400',
-            shadow: 'hover:shadow-md'
+            border: 'hover:border-primary/40'
         },
         {
             id: 'ids',
@@ -22,8 +21,7 @@ export function TeamSelector({ onSelectTeam }) {
             description: 'Analyze network traffic and block potential threats.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
-            border: 'hover:border-neutral-400',
-            shadow: 'hover:shadow-md'
+            border: 'hover:border-primary/40'
         },
         {
             id: 'edr',
@@ -32,8 +30,7 @@ export function TeamSelector({ onSelectTeam }) {
             description: 'manage host security and isolate compromised endpoints.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
-            border: 'hover:border-neutral-400',
-            shadow: 'hover:shadow-md'
+            border: 'hover:border-primary/40'
         },
         {
             id: 'unified',
@@ -42,8 +39,7 @@ export function TeamSelector({ onSelectTeam }) {
             description: 'Combined view of all security modules for full visibility.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
-            border: 'hover:border-neutral-400',
-            shadow: 'hover:shadow-md'
+            border: 'hover:border-primary/40'
         },
         {
             id: 'observability',
@@ -52,15 +48,14 @@ export function TeamSelector({ onSelectTeam }) {
             description: 'Live performance metrics, distributed traces, and log analytics.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
-            border: 'hover:border-neutral-400',
-            shadow: 'hover:shadow-md'
+            border: 'hover:border-primary/40'
         }
     ];
 
     return (
         <div className="app-viewport-scale flex flex-col items-center justify-center bg-background overflow-hidden relative font-sans text-foreground">
             {/* Simple Grid Overlay */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
+
 
             <div className="z-10 text-center mb-16 relative">
                 <Badge variant="muted" className="mb-6 gap-2 rounded-full px-3 py-1 uppercase tracking-wider">
@@ -77,7 +72,7 @@ export function TeamSelector({ onSelectTeam }) {
 
             <div className="z-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl px-6 w-full">
                 {teams.map((team) => (
-                    <Card key={team.id} className={`group relative rounded-2xl transition-all duration-200 hover:shadow-lg ${team.border}`}>
+                    <Card key={team.id} className={`group relative transition-colors duration-200 ${team.border}`}>
                         <button
                             type="button"
                             onClick={() => onSelectTeam(team.id)}

@@ -206,9 +206,9 @@ export function ManualResponseDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
-            <DialogContent className="h-[86vh] max-w-5xl rounded-[28px] border-destructive/25 bg-card p-0 shadow-[0_30px_90px_rgba(220,38,38,0.22)]" showClose>
-                <form onSubmit={handleSubmit} className="grid h-full grid-rows-[auto_minmax(0,1fr)_auto]">
-                    <DialogHeader className="border-b border-destructive/20 bg-gradient-to-r from-destructive/15 via-warning/10 to-card px-7 py-6">
+            <DialogContent className="flex h-[86vh] max-w-5xl flex-col gap-0 overflow-hidden border-destructive/25 p-0" showClose>
+                <form onSubmit={handleSubmit} className="flex h-full flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0 border-b bg-muted/30 px-7 py-6">
                         <Badge variant={['Critical', 'High'].includes(selectedAction.risk) ? 'destructive' : 'warning'} className="w-fit gap-2 uppercase tracking-[0.18em]">
                             <ShieldAlert size={14} />
                             Manual Analyst Action
@@ -219,12 +219,13 @@ export function ManualResponseDialog({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid min-h-0 gap-6 overflow-y-auto bg-background/70 p-7 lg:grid-cols-[1.1fr_0.9fr]">
-                        <div className="flex flex-col gap-5 rounded-3xl border border-primary/15 bg-card p-5 shadow-sm">
+                    <div className="min-h-0 flex-1 overflow-y-auto">
+                        <div className="grid gap-6 bg-background/70 p-7 lg:grid-cols-[1.1fr_0.9fr]">
+                        <div className="flex flex-col gap-5 rounded-xl border bg-card p-5">
                             <label className="flex flex-col gap-2">
                                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Action</span>
                                 <Select value={actionName} onValueChange={setActionName}>
-                                    <SelectTrigger className="h-12 rounded-2xl">
+                                    <SelectTrigger className="h-12 rounded-md">
                                         <SelectValue placeholder="Select response action" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -259,7 +260,7 @@ export function ManualResponseDialog({
                                             value={targets[field]}
                                             onChange={(event) => setTargetValue(field, event.target.value)}
                                             placeholder={FIELD_LABELS[field]}
-                                            className="h-12 rounded-2xl"
+                                            className="h-12"
                                         />
                                     </label>
                                 ))}
@@ -272,7 +273,7 @@ export function ManualResponseDialog({
                                     onChange={(event) => setReason(event.target.value)}
                                     placeholder="Explain why this action is required. Minimum 8 characters."
                                     rows={4}
-                                    className="resize-none rounded-2xl"
+                                    className="resize-none"
                                 />
                             </label>
                         </div>
@@ -361,8 +362,9 @@ export function ManualResponseDialog({
                             )}
                         </div>
                     </div>
+                </div>
 
-                    <DialogFooter className="border-t border-destructive/20 bg-card px-7 py-5">
+                    <DialogFooter className="shrink-0 border-t bg-background px-7 py-5">
                         <Button type="button" variant="cancel" onClick={onClose}>
                             Cancel
                         </Button>

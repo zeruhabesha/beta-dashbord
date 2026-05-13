@@ -140,7 +140,7 @@ function EmptyPanel({ title }) {
 
 function Panel({ title, badge, children, className = '' }) {
     return (
-        <section className={`rounded-3xl border border-border-subtle bg-bg-card/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.12)] ${className}`}>
+        <section className={`rounded-3xl border border-border-subtle bg-bg-card/95 p-5 ${className}`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                     <h3 className="text-sm font-semibold text-text-main">{title}</h3>
@@ -158,7 +158,7 @@ function Panel({ title, badge, children, className = '' }) {
 
 function MetricCard({ icon: Icon, label, value, subtext, accent }) {
     return (
-        <div className="rounded-3xl border border-border-subtle bg-bg-card/95 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.10)]">
+        <div className="rounded-3xl border border-border-subtle bg-bg-card/95 p-5">
             <div className="flex items-start justify-between gap-3">
                 <div>
                     <div className="text-xs uppercase tracking-[0.18em] text-text-muted">{label}</div>
@@ -179,7 +179,7 @@ function ChartTooltip({ active, payload, label }) {
     }
 
     return (
-        <div className="rounded-xl border border-border-subtle bg-black px-3 py-2 text-xs text-white shadow-xl">
+        <div className="rounded-xl border border-border-subtle bg-black px-3 py-2 text-xs text-white">
             <div className="font-semibold text-text-main">{label}</div>
             <div className="mt-1 text-text-muted">{payload[0].value} alerts</div>
         </div>

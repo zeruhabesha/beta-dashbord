@@ -64,6 +64,10 @@ if OPENSEARCH_AUTH_HEADER:
     OPENSEARCH_HEADERS["Authorization"] = OPENSEARCH_AUTH_HEADER
 
 WAZUH_INDEX_PATTERN = "wazuh-alerts-4.x-*"
+EDR_INDEX_PATTERN = (
+    "edr*,edr-detections-*,edr-response-actions-*,edr-response-results-*,"
+    "edr-audit-events-*,tenant-*-edr*,tenant_*_edr*,tenant-01-edr*"
+)
 DEFAULT_DATA_VIEW_ID = "unified-index-pattern"
 WAZUH_BASE_QUERY = "rule.level:* or rule.id:* or rule.description:*"
 WAZUH_FIELD_NAMES = [
@@ -183,8 +187,15 @@ def saved_objects_type_mapping(index_name):
         return None
     if status != 200:
         raise RuntimeError(f"Could not read {index_name} type mapping: {status} {body}")
+    index_mapping = body.get(index_name)
+    if index_mapping is None and body:
+        # OpenSearch Dashboards commonly exposes .kibana as an alias such as
+        # .kibana -> .kibana_2. Mapping responses are keyed by the concrete
+        # index, not the alias, so read the first returned mapping.
+        index_mapping = next(iter(body.values()))
+
     return (
-        body.get(index_name, {})
+        (index_mapping or {})
         .get("mappings", {})
         .get("type", {})
         .get("mapping", {})
@@ -1191,7 +1202,7 @@ def main():
         if item.get("attributes", {}).get("title")
     }
 
-    edr_data_view_id = ensure_data_view(existing_data_views, "beta-edr-events", "edr*", "indexed_at")
+    edr_data_view_id = ensure_data_view(existing_data_views, "beta-edr-events", EDR_INDEX_PATTERN, "indexed_at")
     wazuh_fields = wazuh_fields_from_field_caps()
     wazuh_data_view_id = upsert_data_view_id(DEFAULT_DATA_VIEW_ID, WAZUH_INDEX_PATTERN, "@timestamp", wazuh_fields)
     ensure_data_view(existing_data_views, "beta-wazuh-alerts", WAZUH_INDEX_PATTERN, "@timestamp", wazuh_fields)

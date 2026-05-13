@@ -66,11 +66,13 @@ function loadKindDockerConfig() {
         try {
             const publishedPort = execFileSync('docker', ['port', name, '6443/tcp'], {
                 encoding: 'utf8',
-                stdio: ['ignore', 'pipe', 'ignore']
+                stdio: ['ignore', 'pipe', 'ignore'],
+                timeout: 1000
             }).trim()
             const kubeconfig = execFileSync('docker', ['exec', name, 'cat', '/etc/kubernetes/admin.conf'], {
                 encoding: 'utf8',
-                stdio: ['ignore', 'pipe', 'ignore']
+                stdio: ['ignore', 'pipe', 'ignore'],
+                timeout: 1000
             })
             const parsed = parseKubeConfigBlock(kubeconfig)
             const hostTarget = publishedPort ? `https://${publishedPort.replace('0.0.0.0', '127.0.0.1')}` : parsed.target
@@ -91,7 +93,8 @@ function loadWslKindConfig() {
     try {
         const kubeconfig = execFileSync('wsl', ['-d', 'Ubuntu', 'sh', '-lc', 'cat ~/.kube/config'], {
             encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'ignore']
+            stdio: ['ignore', 'pipe', 'ignore'],
+            timeout: 1500
         })
         const currentContext = kubeconfig.match(/^current-context:\s*(.+)$/m)?.[1]?.trim()
         const kindContext = currentContext?.startsWith('kind-')
@@ -136,11 +139,45 @@ function createProxyOptions({ target, headers, agent, rewrite }) {
         target,
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "",
         timeout: 10000,
         proxyTimeout: 10000,
         rewrite,
         headers,
         agent: isHttps ? agent : undefined
+    }
+}
+
+function parseBoolean(value, fallback = false) {
+    if (value === undefined || value === null || value === '') {
+        return fallback
+    }
+
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase())
+}
+
+function betaUnavailableBackendsPlugin(disabledRoutes = []) {
+    return {
+        name: 'beta-unavailable-backends',
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                const requestPath = req.url?.split('?')[0] || ''
+                const match = disabledRoutes.find(({ prefix }) => requestPath === prefix || requestPath.startsWith(`${prefix}/`))
+
+                if (!match) {
+                    next()
+                    return
+                }
+
+                res.statusCode = 503
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({
+                    error: `${match.serviceName} proxy is not configured`,
+                    code: 'SERVICE_PROXY_NOT_CONFIGURED',
+                    hint: match.hint
+                }))
+            })
+        }
     }
 }
 
@@ -152,12 +189,26 @@ export default defineConfig(({ mode }) => {
     const devServerPort = Number(env.VITE_DEV_SERVER_PORT || env.DEV_SERVER_PORT || 5173)
 
     const openSearchTarget = env.VITE_OPENSEARCH_PROXY_TARGET || env.OPENSEARCH_PROXY_TARGET || 'http://196.188.249.46:9200'
-    const siemAlertsTarget = env.VITE_SIEM_ALERTS_PROXY_TARGET || env.SIEM_ALERTS_PROXY_TARGET || 'http://192.168.1.28:8080'
-    const playbookServiceTarget = env.VITE_PLAYBOOK_SERVICE_PROXY_TARGET || env.PLAYBOOK_SERVICE_PROXY_TARGET || 'http://192.168.1.28:9092'
-    const responseServiceTarget = env.VITE_RESPONSE_SERVICE_PROXY_TARGET || env.RESPONSE_SERVICE_PROXY_TARGET || 'http://192.168.1.28:9093'
-    const approvalServiceTarget = env.VITE_APPROVAL_SERVICE_PROXY_TARGET || env.APPROVAL_SERVICE_PROXY_TARGET || 'http://192.168.1.28:9094'
-    const threatHuntingServiceTarget = env.VITE_THREAT_HUNTING_SERVICE_PROXY_TARGET || env.THREAT_HUNTING_SERVICE_PROXY_TARGET || 'http://192.168.1.28:9095'
-    const auditServiceTarget = env.VITE_AUDIT_SERVICE_PROXY_TARGET || env.AUDIT_SERVICE_PROXY_TARGET || 'http://192.168.1.28:9096'
+    const siemAlertsTargetEnv = env.VITE_SIEM_ALERTS_PROXY_TARGET || env.SIEM_ALERTS_PROXY_TARGET || ''
+    const cmtTargetEnv = env.VITE_CMT_PROXY_TARGET || env.CMT_PROXY_TARGET || 'http://192.168.1.28:8081'
+    const playbookServiceTargetEnv = env.VITE_PLAYBOOK_SERVICE_PROXY_TARGET || env.PLAYBOOK_SERVICE_PROXY_TARGET || ''
+    const responseServiceTargetEnv = env.VITE_RESPONSE_SERVICE_PROXY_TARGET || env.RESPONSE_SERVICE_PROXY_TARGET || ''
+    const approvalServiceTargetEnv = env.VITE_APPROVAL_SERVICE_PROXY_TARGET || env.APPROVAL_SERVICE_PROXY_TARGET || ''
+    const threatHuntingServiceTargetEnv = env.VITE_THREAT_HUNTING_SERVICE_PROXY_TARGET || env.THREAT_HUNTING_SERVICE_PROXY_TARGET || ''
+    const auditServiceTargetEnv = env.VITE_AUDIT_SERVICE_PROXY_TARGET || env.AUDIT_SERVICE_PROXY_TARGET || ''
+    const siemAlertsEnabled = parseBoolean(env.VITE_SIEM_ALERTS_ENABLED || env.SIEM_ALERTS_ENABLED, Boolean(siemAlertsTargetEnv))
+    const securityServicesEnabled = parseBoolean(
+        env.VITE_SECURITY_SERVICES_ENABLED || env.SECURITY_SERVICES_ENABLED,
+        Boolean(playbookServiceTargetEnv || responseServiceTargetEnv || approvalServiceTargetEnv || threatHuntingServiceTargetEnv || auditServiceTargetEnv)
+    )
+    const cmtEnabled = parseBoolean(env.VITE_CMT_ENABLED || env.CMT_ENABLED, true)
+    const siemAlertsTarget = siemAlertsEnabled ? siemAlertsTargetEnv : ''
+    const cmtTarget = cmtEnabled ? cmtTargetEnv : ''
+    const playbookServiceTarget = securityServicesEnabled ? playbookServiceTargetEnv : ''
+    const responseServiceTarget = securityServicesEnabled ? responseServiceTargetEnv : ''
+    const approvalServiceTarget = securityServicesEnabled ? approvalServiceTargetEnv : ''
+    const threatHuntingServiceTarget = securityServicesEnabled ? threatHuntingServiceTargetEnv : ''
+    const auditServiceTarget = securityServicesEnabled ? auditServiceTargetEnv : ''
     const openSearchUsername = env.VITE_OPENSEARCH_PROXY_USERNAME || env.OPENSEARCH_PROXY_USERNAME
     const openSearchPassword = env.VITE_OPENSEARCH_PROXY_PASSWORD || env.OPENSEARCH_PROXY_PASSWORD
     const siemAlertsAuthorization = env.SIEM_ALERTS_PROXY_AUTHORIZATION
@@ -233,6 +284,23 @@ export default defineConfig(({ mode }) => {
     const dashboardsAgent = dashboardsProxyPath ? kubernetesAgent : undefined
     const rewriteToDashboards = (path) => (dashboardsProxyPath ? `${dashboardsProxyPath}${path}` : path)
 
+    const disabledProxyRoutes = []
+    const registerProxy = (proxyMap, route, serviceName, options, proxyOverrides = {}) => {
+        if (!options.target) {
+            disabledProxyRoutes.push({
+                prefix: route,
+                serviceName,
+                hint: `Set VITE_${serviceName.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_PROXY_TARGET and enable the related VITE_*_ENABLED flag when the backend is running.`
+            })
+            return
+        }
+
+        proxyMap[route] = {
+            ...createProxyOptions(options),
+            ...proxyOverrides
+        }
+    }
+
     const proxy = {
         '/api/opensearch': {
             ...createProxyOptions({
@@ -248,60 +316,6 @@ export default defineConfig(({ mode }) => {
                 })
             }
         },
-        '/api/siem-alerts': {
-            ...createProxyOptions({
-                target: siemAlertsTarget,
-                headers: siemAlertsHeaders,
-                rewrite: (path) => path.replace(/^\/api\/siem-alerts/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
-        '/api/playbooks': {
-            ...createProxyOptions({
-                target: playbookServiceTarget,
-                headers: playbookServiceHeaders,
-                rewrite: (path) => path.replace(/^\/api\/playbooks/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
-        '/api/response': {
-            ...createProxyOptions({
-                target: responseServiceTarget,
-                headers: responseServiceHeaders,
-                rewrite: (path) => path.replace(/^\/api\/response/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
-        '/api/approvals': {
-            ...createProxyOptions({
-                target: approvalServiceTarget,
-                headers: approvalServiceHeaders,
-                rewrite: (path) => path.replace(/^\/api\/approvals/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
-        '/api/audit-service': {
-            ...createProxyOptions({
-                target: auditServiceTarget,
-                headers: auditServiceHeaders,
-                rewrite: (path) => path.replace(/^\/api\/audit-service/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
-        '/api/threat-hunting': {
-            ...createProxyOptions({
-                target: threatHuntingServiceTarget,
-                headers: threatHuntingServiceHeaders,
-                rewrite: (path) => path.replace(/^\/api\/threat-hunting/, '')
-            }),
-            timeout: 0,
-            proxyTimeout: 0
-        },
         '/api/kubernetes': createProxyOptions({
             target: kubernetesTarget,
             headers: kubernetesHeaders,
@@ -315,6 +329,51 @@ export default defineConfig(({ mode }) => {
         })
     }
 
+    registerProxy(proxy, '/api/siem-alerts', 'siem-alerts', {
+        target: siemAlertsTarget,
+        headers: siemAlertsHeaders,
+        rewrite: (path) => path.replace(/^\/api\/siem-alerts/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+    
+    registerProxy(proxy, '/api/cmt', 'cmt', {
+        target: cmtTarget,
+        rewrite: (path) => path.replace(/^\/api\/cmt/, '')
+    }, { 
+        timeout: 60000, 
+        proxyTimeout: 60000,
+        xfwd: true
+    })
+
+    registerProxy(proxy, '/api/playbooks', 'playbook-service', {
+        target: playbookServiceTarget,
+        headers: playbookServiceHeaders,
+        rewrite: (path) => path.replace(/^\/api\/playbooks/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+
+    registerProxy(proxy, '/api/response', 'response-service', {
+        target: responseServiceTarget,
+        headers: responseServiceHeaders,
+        rewrite: (path) => path.replace(/^\/api\/response/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+
+    registerProxy(proxy, '/api/approvals', 'approval-service', {
+        target: approvalServiceTarget,
+        headers: approvalServiceHeaders,
+        rewrite: (path) => path.replace(/^\/api\/approvals/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+
+    registerProxy(proxy, '/api/audit-service', 'audit-service', {
+        target: auditServiceTarget,
+        headers: auditServiceHeaders,
+        rewrite: (path) => path.replace(/^\/api\/audit-service/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+
+    registerProxy(proxy, '/api/threat-hunting', 'threat-hunting-service', {
+        target: threatHuntingServiceTarget,
+        headers: threatHuntingServiceHeaders,
+        rewrite: (path) => path.replace(/^\/api\/threat-hunting/, '')
+    }, { timeout: 0, proxyTimeout: 0 })
+
     for (const route of ['/app', '/bootstrap.js', '/startup.js', '/ui', '/translations', '/node_modules/@osd', '/internal', '/goto', '^/\\d+/', '/api']) {
         proxy[route] = createProxyOptions({
             target: dashboardsTarget,
@@ -325,7 +384,7 @@ export default defineConfig(({ mode }) => {
     }
 
     return {
-        plugins: [betaOpenSearchBrandingPlugin(), react()],
+        plugins: [betaUnavailableBackendsPlugin(disabledProxyRoutes), betaOpenSearchBrandingPlugin(), react()],
         resolve: {
             alias: {
                 '@': resolve(__dirname, 'src')

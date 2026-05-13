@@ -15,7 +15,9 @@ window._env_ = {
   "RESPONSE_SERVICE_API": "${VITE_RESPONSE_SERVICE_API-/api/response}",
   "AUDIT_SERVICE_API": "${VITE_AUDIT_SERVICE_API-/api/audit-service}",
   "THREAT_HUNTING_SERVICE_API": "${VITE_THREAT_HUNTING_SERVICE_API-/api/threat-hunting}",
-  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/siem-alerts}",
+  "SECURITY_SERVICES_ENABLED": "${VITE_SECURITY_SERVICES_ENABLED-${SECURITY_SERVICES_ENABLED-false}}",
+  "SIEM_ALERTS_ENABLED": "${VITE_SIEM_ALERTS_ENABLED-${SIEM_ALERTS_ENABLED-false}}",
+  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/cmt}",
   "CMT_AUTO_CONNECT": "${VITE_CMT_AUTO_CONNECT-false}",
   "CMT_REQUEST_TIMEOUT_MS": "${VITE_CMT_REQUEST_TIMEOUT_MS-4500}",
   "CMT_ENABLE_SSE": "${VITE_CMT_ENABLE_SSE-false}"
@@ -24,6 +26,7 @@ EOF
 
 OPENSEARCH_PROXY_TARGET="${OPENSEARCH_PROXY_TARGET:-http://196.188.249.46:9200}"
 SIEM_ALERTS_PROXY_TARGET="${SIEM_ALERTS_PROXY_TARGET:-http://192.168.1.28:8080}"
+CMT_PROXY_TARGET="${CMT_PROXY_TARGET:-http://192.168.1.28:8081}"
 PLAYBOOK_SERVICE_PROXY_TARGET="${PLAYBOOK_SERVICE_PROXY_TARGET:-http://192.168.1.28:9092}"
 RESPONSE_SERVICE_PROXY_TARGET="${RESPONSE_SERVICE_PROXY_TARGET:-http://192.168.1.28:9093}"
 APPROVAL_SERVICE_PROXY_TARGET="${APPROVAL_SERVICE_PROXY_TARGET:-http://192.168.1.28:9094}"
@@ -133,9 +136,9 @@ server {
         proxy_ssl_verify off;
     }
 
-    location /api/siem-alerts/ {
+    location /alerts/ {
         set \$backend "${SIEM_ALERTS_PROXY_TARGET}";
-        rewrite ^/api/siem-alerts/?(.*)$ /\$1 break;
+        rewrite ^/alerts/?(.*)$ /\$1 break;
         proxy_pass \$backend;
         proxy_http_version 1.1;
         proxy_buffering off;
@@ -143,6 +146,22 @@ server {
         proxy_read_timeout 3600s;
         proxy_send_timeout 3600s;
         ${SIEM_ALERTS_AUTH_DIRECTIVE}
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_ssl_verify off;
+    }
+
+    location /api/cmt/ {
+        set \$backend "${CMT_PROXY_TARGET}";
+        rewrite ^/api/cmt/?(.*)$ /\$1 break;
+        proxy_pass \$backend;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;

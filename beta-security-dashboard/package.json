@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/assert-dev-port.mjs",
     "dev": "vite",
+    "opensearch:repair": "powershell -NoProfile -ExecutionPolicy Bypass -File ../scripts/repair-opensearch-dashboards.ps1",
     "build": "vite build",
     "preview": "vite preview"
   },

@@ -82,13 +82,13 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
 
     return (
         <aside className={clsx(
-            "h-full bg-white dark:bg-black border-r border-gray-200 dark:border-neutral-800 flex flex-col flex-shrink-0 text-sm select-none transition-all duration-300 ease-in-out relative group/sidebar z-20",
+            "relative z-20 flex h-full flex-shrink-0 select-none flex-col border-r bg-background text-sm transition-all duration-300 ease-in-out group/sidebar",
             isCollapsed ? "w-16" : "w-64"
         )}>
             {/* Collapse Toggle Button */}
             <button
                 onClick={onToggleCollapse}
-                className="absolute -right-3 top-6 z-50 bg-white dark:bg-black border border-gray-200 dark:border-neutral-700 rounded-full p-1 shadow-sm text-gray-500 hover:text-black dark:hover:text-white opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200"
+                className="absolute -right-3 top-6 z-50 rounded-full border bg-background p-1 text-muted-foreground opacity-0 transition-opacity duration-200 hover:text-foreground group-hover/sidebar:opacity-100"
                 title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
                 {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -97,18 +97,18 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
 
             {/* Header (Simplified for Admin Console look) */}
             <div className={clsx(
-                "h-16 flex items-center border-b border-gray-200 dark:border-neutral-800 px-6",
+                "flex h-16 items-center border-b px-6",
                 isCollapsed && "justify-center px-0"
             )}>
                 {!isCollapsed ? (
                     <div className="flex flex-col">
-                        <span className="font-semibold text-black dark:text-white text-lg tracking-tight">
+                        <span className="text-lg font-semibold tracking-tight text-foreground">
                             Account Console
                         </span>
-                        <span className="text-[11px] text-gray-500 dark:text-neutral-400 tracking-wide uppercase">Beta</span>
+                        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Beta</span>
                     </div>
                 ) : (
-                    <span className="font-bold text-black dark:text-white text-xl">AC</span>
+                    <span className="text-xl font-bold text-foreground">AC</span>
                 )}
             </div>
 
@@ -119,7 +119,7 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
                         {/* Category Header */}
                         {!group.hideLabel && !isCollapsed && (
                             <div className="px-6 mb-2 flex items-center justify-between">
-                                <h3 className="text-[11px] font-bold text-gray-400 dark:text-neutral-500 uppercase tracking-widest">
+                                <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
                                     {group.category}
                                 </h3>
                             </div>
@@ -127,7 +127,7 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
 
                         {/* Separator when collapsed */}
                         {isCollapsed && !group.hideLabel && (
-                            <div className="mx-auto w-8 h-px bg-gray-200 dark:bg-neutral-800 my-4" />
+                            <div className="mx-auto my-4 h-px w-8 bg-border" />
                         )}
 
                         {/* Items */}
@@ -143,16 +143,16 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
                                         className={clsx(
                                             "relative flex items-center transition-colors duration-150 outline-none group/item",
                                             isCollapsed
-                                                ? "justify-center w-full py-3 hover:bg-gray-100 dark:hover:bg-neutral-900"
-                                                : "justify-start px-6 py-2.5 hover:bg-gray-100 dark:hover:bg-neutral-900",
+                                                ? "w-full justify-center py-3 hover:bg-muted"
+                                                : "justify-start px-6 py-2.5 hover:bg-muted",
                                             activeView === item.id
-                                                ? "text-black dark:text-white bg-gray-100 dark:bg-white/10"
-                                                : "text-gray-600 dark:text-neutral-300"
+                                                ? "bg-muted text-foreground"
+                                                : "text-muted-foreground"
                                         )}
                                     >
                                         {/* Active Indicator Line (Left) - The defining Admin Console feature */}
                                         {activeView === item.id && (
-                                            <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-black dark:bg-white" />
+                                            <div className="absolute bottom-0 left-0 top-0 w-1 bg-primary" />
                                         )}
 
                                         <item.icon
@@ -160,7 +160,7 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
                                             className={clsx(
                                                 "shrink-0",
                                                 !isCollapsed && "mr-3",
-                                                activeView === item.id ? "text-black dark:text-white" : "text-gray-400 dark:text-neutral-500 group-hover/item:text-gray-600 dark:group-hover/item:text-neutral-300"
+                                                activeView === item.id ? "text-foreground" : "text-muted-foreground group-hover/item:text-foreground"
                                             )}
                                         />
 
@@ -168,13 +168,13 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
                                             <>
                                                 <span className={clsx(
                                                     "font-medium truncate",
-                                                    activeView === item.id ? "text-black dark:text-white" : ""
+                                                    activeView === item.id ? "text-foreground" : ""
                                                 )}>
                                                     {item.label}
                                                 </span>
 
                                                 {count > 0 && (
-                                                    <span className="ml-auto inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-semibold leading-none text-destructive-foreground shadow-sm">
+                                                    <span className="ml-auto inline-flex min-w-[1.5rem] items-center justify-center rounded-full bg-destructive px-1.5 py-0.5 text-[11px] font-semibold leading-none text-destructive-foreground">
                                                         {formatAlertCount(count)}
                                                     </span>
                                                 )}
@@ -182,7 +182,7 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
                                         )}
 
                                         {isCollapsed && count > 0 && (
-                                            <span className="absolute right-2 top-2 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground shadow-sm">
+                                            <span className="absolute right-2 top-2 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-destructive-foreground">
                                                 {formatAlertCount(count)}
                                             </span>
                                         )}
@@ -195,10 +195,10 @@ export const Sidebar = ({ activeView, onViewChange, menuStructure = [], moduleId
             </div>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-gray-200 dark:border-neutral-800 bg-gray-50 dark:bg-neutral-950">
+            <div className="border-t bg-muted/40 p-4">
                 <button
                     className={clsx(
-                        "w-full flex items-center justify-center transition-colors duration-200 rounded-md hover:bg-gray-200 dark:hover:bg-neutral-900 text-gray-500 dark:text-neutral-400",
+                        "flex w-full items-center justify-center rounded-md text-muted-foreground transition-colors duration-200 hover:bg-background hover:text-foreground",
                         isCollapsed ? "py-2" : "py-2 gap-2"
                     )}
                 >

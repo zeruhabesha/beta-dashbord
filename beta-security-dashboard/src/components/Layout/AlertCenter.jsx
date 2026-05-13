@@ -185,13 +185,13 @@ export function AlertCenter({ activeTimeRange, moduleId, viewId, moduleTitle, vi
     const panel = isOpen ? createPortal(
         <Card
             ref={panelRef}
-            className="fixed z-[320] overflow-hidden rounded-2xl shadow-2xl"
+            className="fixed z-50 overflow-hidden rounded-xl"
             style={panelStyle}
         >
-            <div className="flex items-start justify-between px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black">
+            <div className="flex items-start justify-between border-b bg-background px-4 py-3">
                 <div>
-                    <div className="text-sm font-semibold text-neutral-950 dark:text-white">Alert Center</div>
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    <div className="text-sm font-semibold text-foreground">Alert Center</div>
+                    <div className="text-xs text-muted-foreground">
                         {totalAlerts} notifications for {scopeLabel} in the last {activeTimeRange}
                     </div>
                 </div>
@@ -208,7 +208,7 @@ export function AlertCenter({ activeTimeRange, moduleId, viewId, moduleTitle, vi
                 </Button>
             </div>
 
-            <div className="max-h-[420px] overflow-y-auto bg-white dark:bg-black">
+            <div className="max-h-[420px] overflow-y-auto bg-background">
                 {error && (
                     <div className="px-4 py-6 text-sm text-destructive flex items-center gap-2">
                         <AlertTriangle size={16} />
@@ -217,7 +217,7 @@ export function AlertCenter({ activeTimeRange, moduleId, viewId, moduleTitle, vi
                 )}
 
                 {!error && !isLoading && alerts.length === 0 && (
-                    <div className="px-4 py-8 text-sm text-neutral-500 dark:text-neutral-400 flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-4 py-8 text-sm text-muted-foreground">
                         <ShieldAlert size={16} />
                         <span>No unread notifications in this scope.</span>
                     </div>
@@ -233,7 +233,7 @@ export function AlertCenter({ activeTimeRange, moduleId, viewId, moduleTitle, vi
                             setIsOpen(false);
                             onNavigate?.(alert);
                         }}
-                        className="w-full text-left px-4 py-3 border-b border-neutral-200 dark:border-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors bg-white dark:bg-black"
+                        className="w-full border-b bg-background px-4 py-3 text-left transition-colors hover:bg-muted"
                     >
                         <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
@@ -245,15 +245,15 @@ export function AlertCenter({ activeTimeRange, moduleId, viewId, moduleTitle, vi
                                         {alert.severity}
                                     </Badge>
                                 </div>
-                                <div className="text-sm font-semibold text-neutral-950 dark:text-white truncate">
+                                <div className="truncate text-sm font-semibold text-foreground">
                                     {alert.title}
                                 </div>
-                                <div className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 max-h-10 overflow-hidden">
+                                <div className="mt-1 max-h-10 overflow-hidden text-xs text-muted-foreground">
                                     {alert.summary}
                                 </div>
                             </div>
 
-                            <div className="text-[11px] text-neutral-500 dark:text-neutral-400 whitespace-nowrap pt-0.5">
+                            <div className="whitespace-nowrap pt-0.5 text-[11px] text-muted-foreground">
                                 {formatRelativeTime(alert.timestamp)}
                             </div>
                         </div>

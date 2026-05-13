@@ -16,7 +16,7 @@ import {
 
 // Reusable Card Component
 const StatCard = ({ title, value, subtext, icon: Icon, color, trend }) => (
-    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-300 hover:border-neutral-950/20 hover:shadow-md dark:border-white/10 dark:bg-black">
+    <div className="group relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 transition-colors duration-300 hover:border-neutral-950/20 dark:border-white/10 dark:bg-black">
         <div className="absolute top-0 right-0 p-3 text-neutral-950 opacity-5 transition-opacity group-hover:opacity-10 dark:text-white">
             <Icon size={80} />
         </div>
@@ -160,7 +160,7 @@ export function SecurityOverview() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
 
                 {/* Main Chart Area */}
-                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black lg:col-span-2">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-white/10 dark:bg-black lg:col-span-2">
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
                             <BarChart2 size={20} className="text-neutral-950 dark:text-white" />
@@ -193,7 +193,7 @@ export function SecurityOverview() {
                 </div>
 
                 {/* Status List */}
-                <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black">
+                <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-white/10 dark:bg-black">
                     <h2 className="text-lg font-semibold flex items-center gap-2 mb-6">
                         <Wifi size={20} className="text-neutral-950 dark:text-white" />
                         System Health
@@ -222,7 +222,7 @@ export function SecurityOverview() {
             </div>
 
             {/* Recent Alerts Table styled as Cards */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-black">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-white/10 dark:bg-black">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-lg font-semibold flex items-center gap-2">
                         <Zap size={20} className="text-neutral-950 dark:text-white" />

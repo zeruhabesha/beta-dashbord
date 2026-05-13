@@ -24,6 +24,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -221,45 +222,46 @@ function riskTone(actionName = '') {
 
 function PageHeader({ title, description, onRefresh, loading }) {
     return (
-        <div className="rounded-[32px] border border-primary/20 bg-gradient-to-br from-card via-primary/5 to-accent p-7 shadow-[0_24px_80px_rgba(37,99,235,0.16)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-                <Badge variant="info" className="gap-2 uppercase tracking-[0.18em]">
-                    <ShieldAlert size={14} />
-                    Response Control Plane
-                </Badge>
-                <h1 className="mt-4 text-4xl font-black tracking-tight text-text-main">{title}</h1>
-                <p className="mt-2 max-w-4xl text-sm text-text-muted">{description}</p>
-            </div>
-            {onRefresh && (
-                <Button
-                    onClick={onRefresh}
-                    variant="infoOutline"
-                    className="rounded-full"
-                >
-                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                    Refresh
-                </Button>
-            )}
-        </div>
-        </div>
+        <Card className="overflow-hidden">
+            <CardHeader className="flex flex-col gap-4 p-7 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                    <Badge variant="info" className="gap-2 uppercase tracking-[0.18em]">
+                        <ShieldAlert size={14} />
+                        Response Control Plane
+                    </Badge>
+                    <CardTitle className="mt-4 text-4xl font-black tracking-tight text-foreground">{title}</CardTitle>
+                    <CardDescription className="mt-2 max-w-4xl text-sm font-medium">{description}</CardDescription>
+                </div>
+                {onRefresh && (
+                    <Button
+                        onClick={onRefresh}
+                        variant="infoOutline"
+                        className="rounded-full"
+                    >
+                        <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </Button>
+                )}
+            </CardHeader>
+        </Card>
     );
 }
 
 function Panel({ title, children, badge, className = '' }) {
     return (
-        <section className={`relative overflow-hidden rounded-[28px] border border-primary/15 bg-card p-5 shadow-[0_18px_60px_rgba(37,99,235,0.10)] ${className}`}>
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-info via-primary to-accent-primary" />
-            <div className="mb-4 flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold text-text-main">{title}</h2>
+        <Card className={`overflow-hidden ${className}`}>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 border-b p-5">
+                <CardTitle className="text-sm font-semibold text-foreground">{title}</CardTitle>
                 {badge && (
-                    <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-primary">
+                    <Badge variant="secondary" className="rounded-full uppercase tracking-[0.14em]">
                         {badge}
-                    </span>
+                    </Badge>
                 )}
-            </div>
-            {children}
-        </section>
+            </CardHeader>
+            <CardContent className="p-5">
+                {children}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -275,7 +277,7 @@ function Notice({ type = 'info', children }) {
 
 function EmptyState({ label }) {
     return (
-        <div className="rounded-2xl border border-dashed border-border-subtle bg-bg-body/40 p-8 text-center text-sm text-text-muted">
+        <div className="rounded-xl border border-dashed bg-muted/30 p-8 text-center text-sm text-muted-foreground">
             No {label} returned for the selected filters.
         </div>
     );
@@ -285,19 +287,19 @@ function ApiNeedsPanel() {
     return (
         <div className="grid gap-6 xl:grid-cols-2">
             <Panel title="API Needs Covered By This UI">
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                     {UI_API_NEEDS.map(([area, endpoints]) => (
-                        <div key={area} className="rounded-2xl border border-border-subtle bg-bg-body/40 p-4 text-sm">
-                            <div className="font-semibold text-text-main">{area}</div>
-                            <div className="mt-1 text-text-muted">{endpoints}</div>
+                        <div key={area} className="rounded-xl border bg-muted/30 p-4 text-sm">
+                            <div className="font-semibold text-foreground">{area}</div>
+                            <div className="mt-1 text-muted-foreground">{endpoints}</div>
                         </div>
                     ))}
                 </div>
             </Panel>
             <Panel title="APIs Still Worth Adding">
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                     {MISSING_UI_APIS.map((api) => (
-                        <div key={api} className="rounded-2xl border border-neutral-500/25 bg-neutral-500/10 p-4 text-sm text-neutral-800 dark:border-white/15 dark:bg-white/5 dark:text-neutral-200">
+                        <div key={api} className="rounded-xl border bg-muted/30 p-4 text-sm text-muted-foreground">
                             {api}
                         </div>
                     ))}
@@ -549,15 +551,15 @@ function OverviewPage({ scopes }) {
     const healthItems = ['playbook-service', 'response-service', 'approval-service', 'threat-hunting-service', 'audit-service'];
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="SOC Overview Dashboard" description={PAGE_TITLES['response-dashboard'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['approvals:read', 'playbooks:read', 'audit:read', 'forensics:read', 'hunts:read']} scopes={scopes} />
             {error && <Notice type="error">{error}</Notice>}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {cards.map((card) => (
-                    <section
+                    <Card
                         key={card.label}
-                        className={`relative overflow-hidden rounded-[28px] border p-6 shadow-[0_20px_70px_rgba(37,99,235,0.12)] ${
+                        className={`overflow-hidden ${
                             card.tone === 'warning'
                                 ? 'border-warning/25 bg-warning/10'
                                 : card.tone === 'success'
@@ -569,10 +571,14 @@ function OverviewPage({ scopes }) {
                                             : 'border-info/25 bg-info/10'
                         }`}
                     >
-                        <div className="text-xs font-bold uppercase tracking-[0.18em] text-text-muted">{card.label}</div>
-                        <div className="mt-5 text-5xl font-black tracking-tight text-text-main">{loading ? '...' : card.value}</div>
-                        <div className="mt-3 text-sm font-medium text-text-muted">{card.note}</div>
-                    </section>
+                        <CardHeader className="p-6 pb-2">
+                            <CardTitle className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">{card.label}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-0">
+                            <div className="text-5xl font-black tracking-tight text-foreground">{loading ? '...' : card.value}</div>
+                            <div className="mt-3 text-sm font-medium text-muted-foreground">{card.note}</div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
             <Panel title="Service Health Indicators" badge="healthz">
@@ -654,7 +660,7 @@ function ApprovalDashboard({ operatorId, scopes }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Approval Dashboard" description={PAGE_TITLES.approvals[1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['approvals:read']} scopes={scopes} />
             <Panel title="Approval Filters And Decision Context">
@@ -768,7 +774,7 @@ function PlaybookMonitor({ operatorId, scopes }) {
     const timeline = pickArray(selected, ['timeline', 'stages', 'steps', 'actions', 'events']);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Playbook Execution Monitor" description={PAGE_TITLES['playbook-orchestration'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['playbooks:read']} scopes={scopes} />
             <Panel title="Execution Filters">
@@ -858,7 +864,7 @@ function ConfigSimulation({ scopes }) {
     }));
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Playbook Config and Simulation UI" description={PAGE_TITLES['testing-validation'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['playbooks:read', 'playbooks:config', 'playbooks:simulate']} scopes={scopes} />
             {error && <Notice type="error">{error}</Notice>}
@@ -913,13 +919,13 @@ function GovernancePage({ scopes, activeView }) {
     }, [defaultStatus]);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title={PAGE_TITLES[activeView]?.[0] || 'Response Governance'} description={PAGE_TITLES[activeView]?.[1] || PAGE_TITLES['response-governance'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['playbooks:read', 'audit:read']} scopes={scopes} />
             {error && <Notice type="error">{error}</Notice>}
             <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
                 <Panel title="Safety UX Controls In This UI">
-                    <div className="space-y-3 text-sm text-text-muted">
+                    <div className="flex flex-col gap-3 text-sm text-text-muted">
                         <div className="rounded-2xl border border-border-subtle bg-bg-body/40 p-4">Approvals, bulk approvals, rollbacks, manual actions, and scheduled hunt deletions require explicit confirmation.</div>
                         <div className="rounded-2xl border border-border-subtle bg-bg-body/40 p-4">Sensitive operations require operator identity plus reason/comment and rely on backend RBAC as the final authority.</div>
                         <div className="rounded-2xl border border-border-subtle bg-bg-body/40 p-4">Simulation and dry-run views are visually marked and never queue real response actions.</div>
@@ -973,7 +979,7 @@ function PlatformStatusPage({ scopes, activeView }) {
     const { data, loading, error, reload } = useApiResource(loader, [loader], { autoRefreshMs: 30000 });
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title={PAGE_TITLES[activeView]?.[0] || 'Platform Status'} description={PAGE_TITLES[activeView]?.[1] || 'Operational service status and API needs for the enhanced response UI.'} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['playbooks:read', 'response:manual', 'approvals:read', 'hunts:read', 'audit:read']} scopes={scopes} />
             {error && <Notice type="error">{error}</Notice>}
@@ -1050,7 +1056,7 @@ function ManualResponsePage({ operatorId, scopes }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Manual Response Actions UI" description={PAGE_TITLES['manual-operations'][1]} />
             <ScopeHint requiredScopes={['response:manual', 'artifacts:validate']} scopes={scopes} />
             <Panel title="Manual Response Request" badge="dry_run=false">
@@ -1119,7 +1125,7 @@ function ResponseAdminPage({ operatorId, scopes }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Response Admin UI" description={PAGE_TITLES['response-center'][1]} />
             <ScopeHint requiredScopes={['response:replay', 'response:rollback']} scopes={scopes} />
             <Notice>Replay needs a failed action ID because the backend does not yet expose `GET /api/v1/response/dlq`.</Notice>
@@ -1153,7 +1159,7 @@ function ForensicEvidencePage({ scopes, operatorId }) {
     const exportCatalog = () => mutation.run(() => downloadSecurityServiceFile('audit', '/api/v1/forensics/export', { query: { ...filters, format }, filename: `forensics.${format}` }));
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Forensic Evidence UI" description={PAGE_TITLES['forensic-storage'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['forensics:read', 'forensics:export', 'forensics:download']} scopes={scopes} />
             <Panel title="Evidence Filters">
@@ -1230,7 +1236,7 @@ function ThreatHuntingPage({ operatorId, scopes }) {
     const getSchedule = () => mutation.run(() => callSecurityService('hunts', `/api/v1/hunts/schedules/${encodeURIComponent(scheduleId)}`));
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Threat Hunting UI" description={PAGE_TITLES['threat-hunting'][1]} onRefresh={() => { hunts.reload(); schedules.reload(); }} loading={hunts.loading || schedules.loading} />
             <ScopeHint requiredScopes={['hunts:read', 'hunts:create', 'hunts:schedule']} scopes={scopes} />
             <Panel title="IOC Sweep And Schedule Controls">
@@ -1294,7 +1300,7 @@ function AuditSearchPage({ scopes }) {
     const exportAudit = () => mutation.run(() => downloadSecurityServiceFile('audit', '/api/v1/audit/export', { query: { ...filters, format }, filename: `audit-events.${format}` }));
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Audit Search and Export UI" description={PAGE_TITLES['audit-compliance'][1]} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['audit:read', 'audit:export']} scopes={scopes} />
             <Panel title="Audit Filters">
@@ -1348,7 +1354,7 @@ function RbacHelperPage({ scopes, refreshScopes }) {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <PageHeader title="Settings and RBAC Helper Page" description={PAGE_TITLES['config-management'][1]} />
             <Panel title="Bearer Token And Scope Storage">
                 <Notice>Use this when Keycloak is not providing the API token/scopes. Tokens are stored in browser localStorage on this workstation.</Notice>
@@ -1502,13 +1508,13 @@ function NotificationFeed({ moduleId, viewId, timeRange = '24h' }) {
     const pageEnd = Math.min(total, page * NOTIFICATION_PAGE_SIZE + alerts.length);
 
     return (
-        <section className="rounded-3xl border border-primary/20 bg-gradient-to-r from-primary/10 via-card to-accent shadow-[0_20px_60px_rgba(37,99,235,0.16)] overflow-hidden">
+        <Card className="overflow-hidden">
             <button
                 onClick={() => setCollapsed((c) => !c)}
-                className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-primary/10 transition-colors"
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-muted"
             >
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground shadow-sm">
+                    <div className="flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
                         <Bell size={16} />
                     </div>
                     <div>
@@ -1524,7 +1530,7 @@ function NotificationFeed({ moduleId, viewId, timeRange = '24h' }) {
             </button>
 
             {!collapsed && (
-                <div className="border-t border-border-subtle">
+                <div className="border-t">
                     {error && (
                         <div className="px-5 py-3 text-sm text-destructive flex items-center gap-2">
                             <AlertTriangle size={14} />
@@ -1547,40 +1553,69 @@ function NotificationFeed({ moduleId, viewId, timeRange = '24h' }) {
                     )}
 
                     {alerts.length > 0 && (
-                        <div className="divide-y divide-border-subtle">
+                        <div className="divide-y">
                             {alerts.map((alert) => (
                                 <div
                                     key={alert.id}
-                                    className="flex items-start gap-3 px-5 py-3 hover:bg-bg-input/30 transition-colors group"
+                                    className="group flex flex-col gap-2 px-5 py-3 transition-colors hover:bg-muted"
                                 >
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${feedSourceStyle(alert.source)}`}>
-                                                {alert.source}
-                                            </span>
-                                            <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide ${feedSeverityStyle(alert.severity)}`}>
-                                                {alert.severity}
-                                            </span>
-                                            <span className="text-[11px] text-text-muted ml-auto">
-                                                {formatRelativeTimeFeed(alert.timestamp)}
-                                            </span>
+                                    <div className="flex items-start gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${feedSourceStyle(alert.source)}`}>
+                                                    {alert.source}
+                                                </span>
+                                                <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide ${feedSeverityStyle(alert.severity)}`}>
+                                                    {alert.severity}
+                                                </span>
+                                                <span className="text-[11px] text-text-muted ml-auto">
+                                                    {formatRelativeTimeFeed(alert.timestamp)}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm font-semibold text-text-main truncate">{alert.title}</div>
+                                            {alert.summary && (
+                                                <div className="text-xs text-text-muted mt-0.5 line-clamp-2">{alert.summary}</div>
+                                            )}
                                         </div>
-                                        <div className="text-sm font-semibold text-text-main truncate">{alert.title}</div>
-                                        {alert.summary && (
-                                            <div className="text-xs text-text-muted mt-0.5 line-clamp-2">{alert.summary}</div>
-                                        )}
+                                        <button
+                                            onClick={() => dismiss(alert)}
+                                            className="shrink-0 p-1.5 rounded-full text-text-muted hover:text-text-main hover:bg-bg-input transition-colors opacity-0 group-hover:opacity-100"
+                                            title="Dismiss notification"
+                                        >
+                                            <X size={14} />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={() => dismiss(alert)}
-                                        className="shrink-0 p-1.5 rounded-full text-text-muted hover:text-text-main hover:bg-bg-input transition-colors opacity-0 group-hover:opacity-100"
-                                        title="Dismiss notification"
-                                    >
-                                        <X size={14} />
-                                    </button>
+                                    <div className="flex items-center gap-2 pl-0">
+                                        <button
+                                            onClick={() => dismiss(alert)}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-3 py-1 text-[11px] font-semibold text-success transition-colors hover:bg-success/20"
+                                        >
+                                            <CheckCircle size={11} />
+                                            Mark Read
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const query = alert.documentIndex ? `?index=${encodeURIComponent(alert.documentIndex)}&id=${encodeURIComponent(alert.id)}` : '';
+                                                window.open(`/${moduleId}/alerts${query}`, '_self');
+                                            }}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-info/30 bg-info/10 px-3 py-1 text-[11px] font-semibold text-info transition-colors hover:bg-info/20"
+                                        >
+                                            <ShieldAlert size={11} />
+                                            Investigate
+                                        </button>
+                                        <button
+                                            onClick={() => dismiss(alert)}
+                                            className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-muted transition-colors hover:bg-bg-input"
+                                        >
+                                            <X size={11} />
+                                            Dismiss
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     )}
+
 
                     {!loading && total > 0 && alerts.length === 0 && (
                         <div className="px-5 py-6 text-sm text-text-muted flex items-center gap-2">
@@ -1590,7 +1625,7 @@ function NotificationFeed({ moduleId, viewId, timeRange = '24h' }) {
                     )}
 
                     {total > 0 && (
-                        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle bg-bg-input/40 px-5 py-3 text-xs text-text-muted">
+                        <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-muted/40 px-5 py-3 text-xs text-muted-foreground">
                             <span>
                                 Showing {pageStart}-{pageEnd} of {total}
                             </span>
@@ -1621,7 +1656,7 @@ function NotificationFeed({ moduleId, viewId, timeRange = '24h' }) {
                     )}
                 </div>
             )}
-        </section>
+        </Card>
     );
 }
 
@@ -1635,7 +1670,7 @@ export function SocAutomationPage({ activeView, moduleId, operatorId, timeRange 
     }, [activeView]);
 
     return (
-        <div className="space-y-6">
+        <div className="flex flex-col gap-6">
             <NotificationFeed moduleId={moduleId} viewId={activeView} timeRange={timeRange} />
             {page === 'overview' && <OverviewPage scopes={scopes} />}
             {page === 'approvals' && <ApprovalDashboard operatorId={operatorId} scopes={scopes} />}
@@ -1649,8 +1684,8 @@ export function SocAutomationPage({ activeView, moduleId, operatorId, timeRange 
             {page === 'audit' && <AuditSearchPage scopes={scopes} />}
             {page === 'platform' && <PlatformStatusPage activeView={activeView} scopes={scopes} />}
             {page === 'rbac' && <RbacHelperPage scopes={scopes} refreshScopes={refreshScopes} />}
-            <div className="rounded-2xl border border-border-subtle bg-bg-card/70 p-4 text-xs text-text-muted">
-                Active module: <span className="font-semibold text-text-main">{moduleId}</span>. Backend RBAC remains authoritative; local scopes only hide or disable clearly unauthorized UI actions.
+            <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
+                Active module: <span className="font-semibold text-foreground">{moduleId}</span>. Backend RBAC remains authoritative; local scopes only hide or disable clearly unauthorized UI actions.
             </div>
         </div>
     );

@@ -1,4 +1,25 @@
-const SIEM_ALERTS_API = '/api/siem-alerts';
+const SIEM_ALERTS_API = '/alerts';
+
+function runtimeEnv() {
+    if (typeof window === 'undefined') {
+        return {};
+    }
+
+    return window._env_ || {};
+}
+
+function envFlag(value, fallback = false) {
+    if (value === undefined || value === null || value === '') {
+        return fallback;
+    }
+
+    return ['1', 'true', 'yes', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+export function isSiemAlertsEnabled() {
+    const env = runtimeEnv();
+    return envFlag(env.SIEM_ALERTS_ENABLED ?? import.meta.env.VITE_SIEM_ALERTS_ENABLED, false);
+}
 
 async function parseResponse(response, fallbackMessage) {
     if (!response.ok) {
@@ -10,6 +31,10 @@ async function parseResponse(response, fallbackMessage) {
 }
 
 export async function fetchLiveAlerts(limit = 100, signal) {
+    if (!isSiemAlertsEnabled()) {
+        return { alerts: [] };
+    }
+
     const response = await fetch(`${SIEM_ALERTS_API}/alerts?limit=${limit}`, {
         credentials: 'include',
         signal
@@ -19,12 +44,20 @@ export async function fetchLiveAlerts(limit = 100, signal) {
 }
 
 export function createSiemAlertStream() {
+    if (!isSiemAlertsEnabled()) {
+        return null;
+    }
+
     return new EventSource(`${SIEM_ALERTS_API}/alerts/stream`, {
         withCredentials: true
     });
 }
 
 export async function createCaseFromAlert(alert) {
+    if (!isSiemAlertsEnabled()) {
+        throw new Error('Live SIEM alert API is disabled. Set VITE_SIEM_ALERTS_ENABLED=true and configure VITE_SIEM_ALERTS_PROXY_TARGET when the alert service is running.');
+    }
+
     const response = await fetch(`${SIEM_ALERTS_API}/cases`, {
         method: 'POST',
         credentials: 'include',

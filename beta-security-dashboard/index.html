@@ -8,6 +8,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="BETA Security Dashboard - Unified SOC Operations" />
     <title>BETA Security Dashboard</title>
+    <style>
+        #root:empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #0f172a;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        #root:empty::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.15);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: beta-spin 0.7s linear infinite;
+        }
+        @keyframes beta-spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 
 <body>

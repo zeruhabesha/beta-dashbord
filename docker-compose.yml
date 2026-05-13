@@ -36,6 +36,26 @@ services:
     networks:
       - opensearch-net
 
+  dashboards-bootstrap:
+    image: python:3.12-alpine
+    container_name: dashboards-bootstrap
+    working_dir: /work
+    volumes:
+      - ./opensearch-dashboards-config:/work:ro
+    environment:
+      - OPENSEARCH_URL=${OPENSEARCH_PROXY_TARGET:-http://196.188.249.46:9200}
+      - OPENSEARCH_DASHBOARDS_URL=${DASHBOARDS_PROXY_TARGET:-http://196.188.249.46:5601}
+      - OPENSEARCH_AUTH=${OPENSEARCH_AUTH:-Basic YWRtaW46YWRtaW4=}
+      - OPENSEARCH_DASHBOARDS_AUTH=${OPENSEARCH_DASHBOARDS_AUTH:-Basic YWRtaW46YWRtaW4=}
+      - BETA_DASHBOARDS_REPAIR_TIMEOUT=${BETA_DASHBOARDS_REPAIR_TIMEOUT:-180}
+    command: ["python", "/work/deploy_remote_dashboards.py"]
+    depends_on:
+      - opensearch
+      - dashboards
+    networks:
+      - opensearch-net
+    restart: "no"
+
   # Kafka Ecosystem
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
@@ -118,8 +138,8 @@ services:
       context: ./beta-security-dashboard
     container_name: security-dashboard
     depends_on:
-      - opensearch
-      - dashboards
+      dashboards-bootstrap:
+        condition: service_completed_successfully
     ports:
       - "8080:80"
     networks:

@@ -1,6 +1,7 @@
 const OS_API = '/api/opensearch';
 const SAVED_OBJECTS_API = '/api/saved_objects';
 const DASHBOARDS_API = '/api';
+const SAVED_OBJECTS_INDEX = '.kibana';
 const GLOBAL_TENANT_HEADERS = {
     'Content-Type': 'application/json',
     'osd-xsrf': 'true',
@@ -183,20 +184,36 @@ async function loadSavedObjectDataViews() {
     return payload.saved_objects || [];
 }
 
-async function loadRawDataViewsFallback() {
-    const response = await fetch(`${OS_API}/.kibana/_search?q=type:index-pattern&size=100`, {
+async function loadSavedObjectsTypeMapping() {
+    const response = await fetch(`${OS_API}/${SAVED_OBJECTS_INDEX}/_mapping/field/type`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
         }
     });
 
+    if (response.status === 404) {
+        return null;
+    }
+
     if (!response.ok) {
-        throw new Error(`Failed to load OpenSearch data views: ${response.status}`);
+        return null;
     }
 
     const payload = await response.json();
-    return payload.hits?.hits || [];
+    const indexMapping = payload[SAVED_OBJECTS_INDEX] || Object.values(payload)[0] || null;
+    return indexMapping?.mappings?.type?.mapping?.type || null;
+}
+
+async function assertSavedObjectsIndexCanSupportDataViews() {
+    const typeMapping = await loadSavedObjectsTypeMapping();
+
+    if (typeMapping && typeMapping.type !== 'keyword') {
+        throw new Error(
+            `OpenSearch Dashboards saved-object index is unhealthy: ${SAVED_OBJECTS_INDEX}.type is "${typeMapping.type}". ` +
+            'Run `npm run opensearch:repair` from beta-security-dashboard, then restart the dev server.'
+        );
+    }
 }
 
 async function loadDataViews({ force = false } = {}) {
@@ -205,23 +222,19 @@ async function loadDataViews({ force = false } = {}) {
     }
 
     if (!dataViewListPromise) {
-        dataViewListPromise = loadSavedObjectDataViews().then(async (savedObjects) => {
-            if (savedObjects.length) {
-                return savedObjects;
-            }
+        dataViewListPromise = loadSavedObjectDataViews()
+            .then(async (savedObjects) => {
+                if (savedObjects.length) {
+                    return savedObjects;
+                }
 
-            try {
-                return await loadRawDataViewsFallback();
-            } catch (_rawError) {
+                await assertSavedObjectsIndexCanSupportDataViews();
                 return savedObjects;
-            }
-        }).catch(async (savedObjectsError) => {
-            try {
-                return await loadRawDataViewsFallback();
-            } catch (_rawError) {
+            })
+            .catch(async (savedObjectsError) => {
+                await assertSavedObjectsIndexCanSupportDataViews();
                 throw savedObjectsError;
-            }
-        });
+            });
     }
 
     return dataViewListPromise;

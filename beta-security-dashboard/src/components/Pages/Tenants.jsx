@@ -465,7 +465,7 @@ const FormField = ({ label, description, children }) => (
             {description && (
                 <div className="group relative">
                     <Info size={14} className="cursor-help text-text-muted" />
-                    <div className="absolute left-full top-0 z-10 ml-2 hidden w-56 rounded-lg border border-border-subtle bg-bg-card p-2 text-[11px] text-text-muted shadow-xl group-hover:block">
+                    <div className="absolute left-full top-0 z-10 ml-2 hidden w-56 rounded-lg border border-border-subtle bg-bg-card p-2 text-[11px] text-text-muted group-hover:block">
                         {description}
                     </div>
                 </div>
@@ -520,8 +520,8 @@ const Select = ({ options, className = '', value, onChange, disabled }) => {
 
 const Toggle = ({ enabled, onChange, label }) => (
     <button type="button" onClick={() => onChange(!enabled)} className="flex items-center gap-3 group">
-        <div className={`relative h-6 w-11 rounded-full transition-all duration-300 ${enabled ? 'bg-neutral-950 shadow-[0_0_10px_rgba(0,0,0,0.25)] dark:bg-white' : 'bg-neutral-300 border border-border-subtle group-hover:bg-neutral-400 dark:bg-neutral-800 dark:group-hover:bg-neutral-700'}`}>
-            <div className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all duration-300 shadow-md ${enabled ? 'left-6' : 'left-1'}`} />
+        <div className={`relative h-6 w-11 rounded-full transition-all duration-300 ${enabled ? 'bg-neutral-950 dark:bg-white' : 'bg-neutral-300 border border-border-subtle group-hover:bg-neutral-400 dark:bg-neutral-800 dark:group-hover:bg-neutral-700'}`}>
+            <div className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-all duration-300 ${enabled ? 'left-6' : 'left-1'}`} />
         </div>
         {label && <span className="text-sm font-medium text-text-muted transition-colors group-hover:text-text-main">{label}</span>}
     </button>
@@ -541,10 +541,10 @@ const SectionHeader = ({ title, icon: Icon, description }) => (
 
 const StatCard = ({ label, value, subtext }) => (
     <div className="glass-panel glass-panel-hover rounded-2xl p-5 transform transition-all duration-300 hover:-translate-y-1 relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
+        <div className="absolute inset-0 bg-white/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"></div>
         <div className="relative z-10">
             <div className="text-[10px] font-bold uppercase tracking-[0.25em] text-text-accent text-neon">{label}</div>
-            <div className="mt-3 text-4xl font-extrabold text-white text-neon drop-shadow-md">{value}</div>
+            <div className="mt-3 text-4xl font-extrabold text-white text-neon">{value}</div>
             {subtext && <div className="mt-3 text-xs text-text-muted/80">{subtext}</div>}
         </div>
     </div>
@@ -795,7 +795,7 @@ export function Tenants() {
                 <div className="flex items-center gap-3">
                     <div className="relative flex h-3 w-3">
                         {value === 'Running' && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neutral-300 opacity-75"></span>}
-                        <span className={`relative inline-flex h-3 w-3 rounded-full ${value === 'Running' ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.35)]' : value === 'Failed' ? 'bg-neutral-200 shadow-[0_0_8px_rgba(255,255,255,0.25)]' : 'bg-neutral-500 shadow-[0_0_8px_rgba(115,115,115,0.35)]'}`}></span>
+                        <span className={`relative inline-flex h-3 w-3 rounded-full ${value === 'Running' ? 'bg-white' : value === 'Failed' ? 'bg-neutral-200' : 'bg-neutral-500'}`}></span>
                     </div>
                     <div>
                         <div className="font-semibold text-text-main">{value}</div>
@@ -866,7 +866,7 @@ export function Tenants() {
                                             key={mode}
                                             type="button"
                                             onClick={() => setValue(['suricata', 'mode'], mode)}
-                                            className={`flex-1 rounded-md py-2 text-xs font-bold transition-all ${formData.suricata.mode === mode ? 'bg-neutral-950 text-white shadow-sm dark:bg-white dark:text-black' : 'text-text-muted hover:text-text-main'}`}
+                                            className={`flex-1 rounded-md py-2 text-xs font-bold transition-colors ${formData.suricata.mode === mode ? 'bg-neutral-950 text-white dark:bg-white dark:text-black' : 'text-text-muted hover:text-text-main'}`}
                                         >
                                             {mode}
                                         </button>
@@ -886,7 +886,7 @@ export function Tenants() {
                                                 key={option.value}
                                                 type="button"
                                                 onClick={() => setValue(['suricata', 'ipsNetworking', 'attachmentMode'], option.value)}
-                                                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${formData.suricata.ipsNetworking.attachmentMode === option.value ? 'bg-neutral-950 text-white shadow-sm dark:bg-white dark:text-black' : 'text-text-muted hover:text-text-main'}`}
+                                                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${formData.suricata.ipsNetworking.attachmentMode === option.value ? 'bg-neutral-950 text-white dark:bg-white dark:text-black' : 'text-text-muted hover:text-text-main'}`}
                                             >
                                                 {option.label}
                                             </button>
@@ -1245,7 +1245,7 @@ export function Tenants() {
             <div className="space-y-6">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                     <div>
-                        <h1 className="pb-1 text-3xl font-extrabold text-text-main drop-shadow-sm">Tenant Management</h1>
+                        <h1 className="pb-1 text-3xl font-extrabold text-text-main">Tenant Management</h1>
                         <p className="mt-1 text-sm text-text-muted/80">Deploy and monitor live TenantIDS custom resources from the Kubernetes API.</p>
                         <div className="mt-4 flex flex-wrap gap-3 text-xs font-medium text-text-muted">
                             <span className="glass-panel rounded-full px-3 py-1 text-text-main">API Group: ids.betatech.com/v1alpha1</span>
@@ -1258,7 +1258,7 @@ export function Tenants() {
                             <RefreshCw size={16} className={loading ? 'animate-spin text-text-accent' : 'text-text-muted'} />
                             Refresh
                         </button>
-                        <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-neutral-950 px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_15px_rgba(0,0,0,0.18)] transition-all hover:scale-105 hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
+                        <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-neutral-950 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
                             <Plus size={18} />
                             Create New Tenant
                         </button>
@@ -1318,7 +1318,7 @@ export function Tenants() {
                         <X size={20} />
                     </button>
                     <div>
-                        <h1 className="pb-1 text-3xl font-extrabold text-text-main drop-shadow-sm">{isEditMode ? 'Edit Tenant' : 'Configure New Tenant'}</h1>
+                        <h1 className="pb-1 text-3xl font-extrabold text-text-main">{isEditMode ? 'Edit Tenant' : 'Configure New Tenant'}</h1>
                         <p className="text-sm font-medium text-text-muted/80">This form creates or updates a live TenantIDS resource in the Kubernetes API.</p>
                     </div>
                 </div>
@@ -1327,7 +1327,7 @@ export function Tenants() {
                     <button onClick={closeForm} className="px-4 py-2 text-sm font-bold text-text-muted transition-colors hover:text-white">
                         Cancel
                     </button>
-                    <button disabled={submitBusy} onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_15px_rgba(0,0,0,0.18)] transition-all hover:scale-105 hover:bg-neutral-800 disabled:opacity-60 disabled:hover:scale-100 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
+                    <button disabled={submitBusy} onClick={handleSubmit} className="flex items-center gap-2 rounded-lg bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-neutral-800 disabled:opacity-60 dark:bg-white dark:text-black dark:hover:bg-neutral-200">
                         <Save size={18} />
                         {submitBusy ? 'Saving...' : isEditMode ? 'Update Tenant' : 'Deploy Tenant'}
                     </button>
@@ -1349,7 +1349,7 @@ export function Tenants() {
                                 key={tab.id}
                                 type="button"
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-bold transition-all duration-300 ${activeTab === tab.id ? 'glass-panel border-white/20 bg-white/10 text-white shadow-[0_0_20px_rgba(255,255,255,0.08)]' : 'border-transparent text-text-muted hover:glass-panel hover:text-white'}`}
+                                className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-sm font-bold transition-colors duration-300 ${activeTab === tab.id ? 'glass-panel border-white/20 bg-white/10 text-white' : 'border-transparent text-text-muted hover:glass-panel hover:text-white'}`}
                             >
                                 <tab.icon size={18} className={activeTab === tab.id ? 'text-text-accent' : 'text-text-muted/70'} />
                                 {tab.label}
@@ -1363,9 +1363,9 @@ export function Tenants() {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden rounded-2xl glass-panel shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                <div className="flex-1 overflow-hidden rounded-2xl glass-panel">
                     <div className="h-[680px] overflow-y-auto p-8 custom-scrollbar relative">
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                        <div className="pointer-events-none absolute inset-0 bg-white/5"></div>
                         <div className="relative z-10">
                             {renderTabContent()}
                         </div>

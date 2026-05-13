@@ -743,9 +743,9 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose?.()}>
-            <DialogContent className="h-[86vh] max-w-6xl rounded-[28px] border-primary/25 bg-card p-0 shadow-[0_30px_90px_rgba(37,99,235,0.28)]" showClose>
-                <form onSubmit={handleSubmit} className="grid h-full grid-rows-[auto_minmax(0,1fr)_auto]">
-                <DialogHeader className="border-b border-primary/20 bg-gradient-to-r from-primary/15 via-info/10 to-accent px-7 py-6">
+            <DialogContent className="flex h-[86vh] max-w-6xl flex-col gap-0 overflow-hidden border-primary/25 p-0" showClose>
+                <form onSubmit={handleSubmit} className="flex h-full flex-col">
+                <DialogHeader className="shrink-0 border-b bg-muted/30 px-7 py-5">
                     <div>
                         <Badge variant="info" className="w-fit gap-2 uppercase tracking-[0.18em]">
                             <ShieldCheck size={14} />
@@ -758,12 +758,13 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                     </div>
                 </DialogHeader>
 
-                <div className="grid min-h-0 gap-6 overflow-y-auto bg-background/70 p-7 lg:grid-cols-[0.85fr_1.15fr]">
-                    <div className="space-y-4">
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                    <div className="grid gap-6 bg-background/70 p-7 lg:grid-cols-[0.85fr_1.15fr]">
+                    <div className="flex flex-col gap-4">
                         <label className="flex flex-col gap-2">
                             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operation</span>
                             <Select value={operationId} onValueChange={setOperationId}>
-                                <SelectTrigger className="h-12 rounded-2xl">
+                                <SelectTrigger className="h-12 rounded-md">
                                     <SelectValue placeholder="Select operation" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -781,7 +782,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                             </Select>
                         </label>
 
-                        <div className="rounded-2xl border border-info/25 bg-info/10 p-4 text-sm shadow-sm">
+                        <div className="rounded-xl border border-info/25 bg-info/10 p-4 text-sm">
                             <div className="font-semibold text-text-main">{operation.group} Service</div>
                             <div className="mt-1 text-text-muted">{operation.description}</div>
                             <div className="mt-3 rounded-xl border border-info/20 bg-card px-3 py-2 font-mono text-xs text-info">
@@ -789,7 +790,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-primary/20 bg-card p-4 shadow-sm">
+                        <div className="rounded-xl border bg-card p-4">
                             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">Dashboard Context</div>
                             <div className="mt-3 grid gap-2 text-sm">
                                 <div className="flex justify-between gap-3">
@@ -808,7 +809,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                         </div>
                     </div>
 
-                    <div className="space-y-4 rounded-3xl border border-primary/15 bg-card p-5 shadow-sm">
+                    <div className="flex flex-col gap-4 rounded-xl border bg-card p-5">
                         <div className="grid gap-4 md:grid-cols-2">
                             {operation.fields.map((field) => {
                                 const type = fieldInputType(field);
@@ -823,7 +824,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                                 value={form[field]}
                                                 onChange={(event) => setField(field, event.target.value)}
                                                 rows={field === 'metadata_json' ? 3 : 5}
-                                                className="resize-none rounded-2xl font-mono text-xs"
+                                                className="resize-none font-mono text-xs"
                                             />
                                         </label>
                                     );
@@ -834,7 +835,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                         <label key={field} className="flex flex-col gap-2">
                                             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{FIELD_LABELS[field]}</span>
                                             <Select value={form[field]} onValueChange={(value) => setField(field, value)}>
-                                                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-12 rounded-md"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value="json">JSON</SelectItem>
@@ -851,7 +852,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                         <label key={field} className="flex flex-col gap-2">
                                             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{FIELD_LABELS[field]} *</span>
                                             <Select value={form[field]} onValueChange={(value) => setField(field, value)}>
-                                                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-12 rounded-md"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         {IOC_TYPES.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
@@ -867,7 +868,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                         <label key={field} className="flex flex-col gap-2">
                                             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{FIELD_LABELS[field]}</span>
                                             <Select value={form[field]} onValueChange={(value) => setField(field, value)}>
-                                                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-12 rounded-md"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         <SelectItem value="true">true</SelectItem>
@@ -884,7 +885,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                         <label key={field} className="flex flex-col gap-2">
                                             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{FIELD_LABELS[field]} *</span>
                                             <Select value={form[field]} onValueChange={(value) => setField(field, value)}>
-                                                <SelectTrigger className="h-12 rounded-2xl"><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className="h-12 rounded-md"><SelectValue /></SelectTrigger>
                                                 <SelectContent>
                                                     <SelectGroup>
                                                         {ROLLBACK_ACTIONS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
@@ -904,7 +905,7 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                                             value={form[field]}
                                             onChange={(event) => setField(field, event.target.value)}
                                             placeholder={FIELD_LABELS[field]}
-                                            className="h-12 rounded-2xl"
+                                            className="h-12"
                                         />
                                     </label>
                                 );
@@ -960,8 +961,9 @@ export function SocOperationsDialog({ isOpen, onClose, operatorId, moduleId, vie
                         )}
                     </div>
                 </div>
+                </div>
 
-                <DialogFooter className="border-t border-primary/20 bg-card px-7 py-5">
+                <DialogFooter className="border-t bg-background px-7 py-5">
                     <Button type="button" variant="cancel" onClick={onClose}>
                         Close
                     </Button>

@@ -6,20 +6,17 @@
     :root {
         /* Colorful SOC product theme */
         --app-view-scale: 0.9;
-        --bg-body: #eef5ff;
-        --bg-sidebar: #ffffff;
+        --bg-body: #ffffff;
+        --bg-sidebar: #f8fafc;
         --bg-card: #ffffff;
         --bg-input: #e8f0ff;
         --bg-glass: rgba(255, 255, 255, 0.82);
         --text-main: #10172a;
         --text-muted: #64748b;
         --text-accent: #2563eb;
-        --border-subtle: #c7d2fe;
-        --border-glow: rgba(37, 99, 235, 0.22);
+        --border-subtle: #e2e8f0;
         --accent-primary: #2563eb;
-        --accent-secondary: #7c3aed;
-        --accent-glow: rgba(37, 99, 235, 0.18);
-        --accent-glow-strong: rgba(124, 58, 237, 0.28);
+        --accent-secondary: #4f46e5;
         --status-critical: #dc2626;
         --status-high: #ef4444;
         --status-medium: #d97706;
@@ -57,20 +54,17 @@
     }
 
     .dark {
-        --bg-body: #06111f;
-        --bg-sidebar: #0b1020;
+        --bg-body: #0f172a;
+        --bg-sidebar: #020617;
         --bg-card: #111827;
         --bg-input: #172036;
         --bg-glass: rgba(17, 24, 39, 0.82);
         --text-main: #ffffff;
         --text-muted: #9fb3d9;
         --text-accent: #60a5fa;
-        --border-subtle: #243b63;
-        --border-glow: rgba(96, 165, 250, 0.24);
-        --accent-primary: #60a5fa;
-        --accent-secondary: #a78bfa;
-        --accent-glow: rgba(96, 165, 250, 0.18);
-        --accent-glow-strong: rgba(167, 139, 250, 0.28);
+        --border-subtle: #1e293b;
+        --accent-primary: #3b82f6;
+        --accent-secondary: #6366f1;
         --status-critical: #f87171;
         --status-high: #ef4444;
         --status-medium: #f59e0b;
@@ -111,10 +105,6 @@
 
     body {
         @apply bg-bg-body text-text-main antialiased font-sans overflow-hidden h-screen w-screen flex transition-colors duration-300;
-        background-image:
-            radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 28rem),
-            radial-gradient(circle at top right, rgba(124, 58, 237, 0.14), transparent 30rem),
-            linear-gradient(180deg, var(--body-accent) 0%, var(--bg-body) 72%);
     }
 }
 
@@ -126,20 +116,18 @@
         transform-origin: top left;
     }
 
-    /* Glassmorphism */
+    /* Flat panel helper for legacy pages that still use the glass-panel class. */
     .glass-panel {
-        @apply backdrop-blur-md border shadow-lg;
-        background-color: var(--bg-glass);
-        border-color: var(--border-subtle);
+        @apply border bg-card;
+        border-color: hsl(var(--border));
     }
 
     .glass-panel-hover {
-        @apply transition-all duration-200;
+        @apply transition-colors duration-200;
     }
 
     .glass-panel-hover:hover {
         border-color: var(--text-accent);
-        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
     }
 
     /* Neon Text */
@@ -153,7 +141,7 @@
 
     /* Status Indicators */
     .status-dot {
-        @apply w-2 h-2 rounded-full box-content border border-transparent;
+        @apply size-2 rounded-full box-content border border-transparent;
         box-shadow: 0 0 0 1px currentColor;
     }
 

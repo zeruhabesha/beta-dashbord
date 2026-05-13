@@ -4,7 +4,7 @@ import {
     Map as MapIcon, Bell, Target, Lock, Server,
     Code, CreditCard, Eye, LayoutDashboard, Zap, Monitor, Network,
     Globe, AlertTriangle, Terminal, ShieldAlert,
-    GitBranch, BarChart2, Layers, Cpu, Wifi, Search, CheckCircle, TicketCheck
+    GitBranch, BarChart2, Layers, Cpu, Wifi, Search, CheckCircle, TicketCheck, UserCog
 } from 'lucide-react';
 
 export const MODULE_CONFIG = {
@@ -23,6 +23,9 @@ export const MODULE_CONFIG = {
                     { id: 'cmt-alerts', label: 'CMT Alerts', icon: Bell },
                     { id: 'cmt-cases', label: 'CMT Cases', icon: ShieldAlert },
                     { id: 'cmt-sla', label: 'SLA Breached', icon: AlertTriangle },
+                    { id: 'cmt-reports', label: 'CMT Reports', icon: FileText },
+                    { id: 'cmt-users', label: 'CMT Users', icon: UserCog },
+                    { id: 'cmt-webhooks', label: 'CMT Webhooks', icon: GitBranch },
                     { id: 'live-alerts', label: 'Live Alerts', icon: Bell },
                 ]
             },
@@ -234,6 +237,9 @@ export const MODULE_CONFIG = {
                     { id: 'cmt-alerts', label: 'CMT Alert Triage', icon: Bell },
                     { id: 'cmt-cases', label: 'CMT Case Queue', icon: TicketCheck },
                     { id: 'cmt-sla', label: 'CMT SLA Breaches', icon: AlertTriangle },
+                    { id: 'cmt-reports', label: 'CMT Reports', icon: FileText },
+                    { id: 'cmt-users', label: 'CMT Users', icon: UserCog },
+                    { id: 'cmt-webhooks', label: 'CMT Webhooks', icon: GitBranch },
                     { id: 'malware', label: 'Malware Detection', icon: AlertTriangle },
                     { id: 'mitre', label: 'MITRE ATT&CK', icon: Shield },
                     { id: 'ids-alerts', label: 'Intrusion Alerts', icon: Bell },
