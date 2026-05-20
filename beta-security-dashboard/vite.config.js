@@ -321,27 +321,41 @@ export default defineConfig(({ mode }) => {
             headers: kubernetesHeaders,
             agent: kubernetesAgent,
             rewrite: (path) => path.replace(/^\/api\/kubernetes/, '')
-        }),
-        '/api/v1': createProxyOptions({
-            target: kubernetesTarget,
-            headers: kubernetesHeaders,
-            agent: kubernetesAgent
         })
+        // /api/v1/agents and /api/v1 are added below in order so the more specific
+        // CMT agent paths are registered before the Kubernetes /api/v1 catch-all.
     }
+
+    // CMT agent routes — must be registered before the Kubernetes /api/v1 catch-all
+    registerProxy(proxy, '/api/v1/agents', 'cmt', {
+        target: cmtTarget
+    }, {
+        timeout: 60000,
+        proxyTimeout: 60000,
+        xfwd: true
+    })
+
+    // Kubernetes catch-all for remaining /api/v1 paths (after /api/v1/agents is matched first)
+    proxy['/api/v1'] = createProxyOptions({
+        target: kubernetesTarget,
+        headers: kubernetesHeaders,
+        agent: kubernetesAgent
+    })
 
     registerProxy(proxy, '/api/siem-alerts', 'siem-alerts', {
         target: siemAlertsTarget,
         headers: siemAlertsHeaders,
         rewrite: (path) => path.replace(/^\/api\/siem-alerts/, '')
     }, { timeout: 0, proxyTimeout: 0 })
-    
-    registerProxy(proxy, '/api/cmt', 'cmt', {
-        target: cmtTarget,
-        rewrite: (path) => path.replace(/^\/api\/cmt/, '')
-    }, { 
-        timeout: 60000, 
-        proxyTimeout: 60000,
-        xfwd: true
+    const cmtRootRoutes = ['/auth', '/cases', '/alerts', '/report-templates', '/users', '/webhooks', '/ingest']
+    cmtRootRoutes.forEach((route) => {
+        registerProxy(proxy, route, 'cmt', {
+            target: cmtTarget
+        }, {
+            timeout: 60000,
+            proxyTimeout: 60000,
+            xfwd: true
+        })
     })
 
     registerProxy(proxy, '/api/playbooks', 'playbook-service', {

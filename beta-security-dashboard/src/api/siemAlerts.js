@@ -1,4 +1,4 @@
-const SIEM_ALERTS_API = '/alerts';
+const SIEM_ALERTS_API = '/api/siem-alerts';
 
 function runtimeEnv() {
     if (typeof window === 'undefined') {

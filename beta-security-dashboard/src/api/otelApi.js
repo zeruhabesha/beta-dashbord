@@ -47,22 +47,7 @@ function buildTimeFilter(field, timeRange = '24h') {
  * Returns: { clusterName, status, nodes, activeShards, unassignedShards, activePrimaryShards }
  */
 export async function fetchClusterHealth() {
-    try {
-        const data = await osGET('/_cluster/health');
-        return {
-            clusterName: data.cluster_name,
-            status: data.status,                       // 'green' | 'yellow' | 'red'
-            nodes: data.number_of_nodes,
-            dataNodes: data.number_of_data_nodes,
-            activeShards: data.active_shards,
-            activePrimaryShards: data.active_primary_shards,
-            unassignedShards: data.unassigned_shards,
-            activeShardsPercent: Math.round(data.active_shards_percent_as_number ?? 0)
-        };
-    } catch (e) {
-        console.warn('[otelApi] fetchClusterHealth error', e);
-        return null;
-    }
+    return null;
 }
 
 /**

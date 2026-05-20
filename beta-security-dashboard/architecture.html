@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BETA Security Dashboard – Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --blue:    #3b82f6;
+    --indigo:  #6366f1;
+    --green:   #22c55e;
+    --amber:   #f59e0b;
+    --red:     #ef4444;
+    --cyan:    #06b6d4;
+    --purple:  #a855f7;
+    --gray-50: #f9fafb;
+    --gray-100:#f3f4f6;
+    --gray-200:#e5e7eb;
+    --gray-300:#d1d5db;
+    --gray-600:#4b5563;
+    --gray-700:#374151;
+    --gray-800:#1f2937;
+    --gray-900:#111827;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--gray-800);
+    background: white;
+    padding: 0;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+    color: white;
+    padding: 72px 64px;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+  }
+  .cover-badge {
+    display: inline-block;
+    background: rgba(59,130,246,0.25);
+    border: 1px solid rgba(59,130,246,0.5);
+    color: #93c5fd;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  .cover h1 {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 10px;
+    line-height: 1.15;
+  }
+  .cover h1 span { color: #60a5fa; }
+  .cover p {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 40px;
+  }
+  .cover-meta {
+    display: flex;
+    gap: 32px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 24px;
+  }
+  .cover-meta-item label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 3px;
+  }
+  .cover-meta-item span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  /* ── Page layout ── */
+  .page {
+    padding: 40px 48px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .section-header:first-child { margin-top: 0; }
+  .section-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-900);
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gray-700);
+    margin: 20px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Architecture diagram ── */
+  .arch-box {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 12px 0;
+  }
+  pre, code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+  }
+  pre {
+    white-space: pre;
+    overflow-x: auto;
+    line-height: 1.7;
+    color: var(--gray-800);
+  }
+  code {
+    background: var(--gray-100);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--indigo);
+    font-size: 10px;
+  }
+
+  /* ── Cards grid ── */
+  .grid { display: grid; gap: 12px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .card {
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    padding: 14px 16px;
+    background: white;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .card p, .card li { font-size: 10px; color: var(--gray-600); line-height: 1.5; }
+  .card ul { padding-left: 14px; }
+  .card li { margin-bottom: 2px; }
+
+  .dot-blue   { background: var(--blue); }
+  .dot-indigo { background: var(--indigo); }
+  .dot-green  { background: var(--green); }
+  .dot-amber  { background: var(--amber); }
+  .dot-cyan   { background: var(--cyan); }
+  .dot-purple { background: var(--purple); }
+  .dot-red    { background: var(--red); }
+
+  /* ── Tags ── */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .tag-blue   { background: #eff6ff; color: #1d4ed8; }
+  .tag-green  { background: #f0fdf4; color: #15803d; }
+  .tag-amber  { background: #fffbeb; color: #b45309; }
+  .tag-purple { background: #faf5ff; color: #7e22ce; }
+  .tag-gray   { background: var(--gray-100); color: var(--gray-700); }
+  .tag-cyan   { background: #ecfeff; color: #0e7490; }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px;
+    margin: 10px 0;
+  }
+  thead tr { background: var(--gray-900); color: white; }
+  thead th {
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  tbody tr:nth-child(even) { background: var(--gray-50); }
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--gray-200);
+    color: var(--gray-700);
+    vertical-align: top;
+  }
+  tbody td:first-child { font-weight: 600; color: var(--gray-900); }
+
+  /* ── Flow diagram ── */
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 10px 0;
+  }
+  .flow-node {
+    background: var(--gray-900);
+    color: white;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .flow-node.blue   { background: var(--blue); }
+  .flow-node.indigo { background: var(--indigo); }
+  .flow-node.green  { background: #15803d; }
+  .flow-node.amber  { background: var(--amber); color: #1f2937; }
+  .flow-node.cyan   { background: var(--cyan); color: #0c4a6e; }
+  .flow-arrow {
+    color: var(--gray-400);
+    font-size: 14px;
+    padding: 0 6px;
+    font-weight: 300;
+  }
+
+  /* ── State machine ── */
+  .state-machine {
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    margin: 16px 0;
+    align-items: flex-start;
+  }
+  .state-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .state-node {
+    background: var(--gray-800);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .state-node.active { background: var(--blue); }
+  .state-node.error  { background: var(--red); }
+  .state-node.start  { background: var(--indigo); }
+  .state-arrow-h { color: var(--gray-400); font-size: 16px; padding: 8px 4px; align-self: center; }
+  .state-arrow-v { color: var(--gray-400); font-size: 12px; text-align: center; }
+
+  /* ── Proxy route list ── */
+  .route-list { list-style: none; padding: 0; }
+  .route-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    font-size: 10px;
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+  }
+  .route-list li code { background: none; padding: 0; }
+  .route-path {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--indigo);
+    min-width: 220px;
+  }
+  .route-arrow { color: var(--gray-400); }
+  .route-target { color: var(--gray-600); }
+
+  /* ── Page break ── */
+  .page-break { page-break-before: always; padding-top: 40px; }
+
+  /* ── File tree ── */
+  .filetree {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 10px;
+    padding: 20px 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    line-height: 2;
+  }
+  .filetree .dir   { color: #60a5fa; font-weight: 600; }
+  .filetree .file  { color: #e2e8f0; }
+  .filetree .comment { color: #64748b; }
+
+  /* ── Env var table ── */
+  .env-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9.5px;
+    color: var(--indigo);
+    font-weight: 600;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 9px;
+    color: var(--gray-300);
+    border-top: 1px solid var(--gray-200);
+    margin-top: 40px;
+  }
+
+  @media print {
+    body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .page-break { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════ COVER ═══ -->
+<div class="cover">
+  <div class="cover-badge">Technical Architecture Document</div>
+  <h1>BETA <span>Security Dashboard</span></h1>
+  <p>Unified SOC Platform — System Architecture Overview</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item"><label>Stack</label><span>React 18 + Vite + OpenSearch</span></div>
+    <div class="cover-meta-item"><label>Backend</label><span>196.188.249.46:9200</span></div>
+    <div class="cover-meta-item"><label>Auth</label><span>Keycloak OIDC + PKCE</span></div>
+    <div class="cover-meta-item"><label>Version</label><span>OpenSearch 2.13 / Kibana-ready</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 1 ══════ -->
+<div class="page">
+
+  <!-- 1. System Overview -->
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <h2>System Overview</h2>
+  </div>
+
+  <div class="arch-box">
+    <pre>
+  Browser
+    │
+    └── Vite Dev Server :5173  /  Nginx :8080 (Docker)
+          │
+          ├─ React SPA (src/)
+          │
+          └─ Reverse Proxy Layer
+                ├── /api/opensearch  ──────►  OpenSearch          196.188.249.46:9200
+                ├── /app, /ui, /api  ──────►  OpenSearch Dashboards  196.188.249.46:5601
+                ├── /auth, /cases    ──────►  CMT Backend            192.168.1.28:8081
+                ├── /api/v1/agents   ──────►  CMT Backend
+                ├── /api/kubernetes  ──────►  Kubernetes API          127.0.0.1:8001
+                ├── /api/siem-alerts ──────►  SIEM Alerts Service
+                └── VITE_KIBANA_BASE_URL   ──►  Kibana (All Teams direct URL)
+    </pre>
+  </div>
+
+  <div class="grid grid-3" style="margin-top:16px;">
+    <div class="card">
+      <div class="card-title"><span class="dot dot-blue"></span>Frontend</div>
+      <ul>
+        <li>React 18 + Vite</li>
+        <li>Tailwind CSS + Radix UI</li>
+        <li>Recharts for visualizations</li>
+        <li>Same-origin iframe embedding</li>
+        <li>Lucide icons</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-green"></span>Data Layer</div>
+      <ul>
+        <li>OpenSearch 2.13.0 (:9200)</li>
+        <li>OpenSearch Dashboards (:5601)</li>
+        <li>Kafka + Zookeeper (:9092)</li>
+        <li>Vector data pipeline</li>
+        <li>Kibana (optional, unified)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-purple"></span>Security</div>
+      <ul>
+        <li>Keycloak OIDC + PKCE</li>
+        <li>Bearer token on all CMT calls</li>
+        <li>Scope-based access control</li>
+        <li>sessionStorage token store</li>
+        <li>Multi-tenant via Kubernetes NS</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 2. App State Machine -->
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <h2>App State Machine (App.jsx)</h2>
+  </div>
+
+  <div class="arch-box">
+    <div class="state-machine">
+      <div class="state-col">
+        <div class="state-node start">loading</div>
+      </div>
+      <div class="state-arrow-h">→</div>
+      <div class="state-col">
+        <div class="state-node active">authenticated</div>
+        <div class="state-arrow-v">↓</div>
+        <div class="state-node error">unauthenticated</div>
+      </div>
+      <div class="state-arrow-h">→</div>
+      <div class="state-col">
+        <div class="state-node">team-select</div>
+        <div class="state-arrow-v" style="visibility:hidden">↓</div>
+        <div class="state-node error">login</div>
+      </div>
+      <div class="state-arrow-h">→</div>
+      <div class="state-col">
+        <div class="state-node active">dashboard</div>
+        <div class="state-arrow-v">↓</div>
+        <div class="state-node" style="background:#7e22ce;">unified-react</div>
+      </div>
+    </div>
+    <p style="font-size:10px; color:#6b7280; margin-top:8px; text-align:center;">
+      <strong>dashboard</strong> = iframe-backed views &nbsp;|&nbsp; <strong>unified-react</strong> = full React pages (All Teams React variant)
+    </p>
+  </div>
+
+  <!-- 3. Iframe Rendering Pipeline -->
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <h2>iframe Rendering Pipeline</h2>
+  </div>
+
+  <div class="arch-box">
+    <pre>
+  User picks a view
+        │
+        ▼
+  getModuleOpenSearchView(moduleId, viewId)
+        │  reads dashboardId, KQL query, columns from opensearchViews.js
+        │
+        ├─── [unified + VITE_KIBANA_BASE_URL set] ──────────────────────────────┐
+        │                                                                        │
+        │    buildModuleKibanaUrl()                                              │
+        │    • /app/dashboards?embed=true#/view/{id}?_g=(time:...)              │
+        │    • /app/discover?embed=true#/?...                                    │
+        │    • /app/maps?embed=true#/                                            │
+        │    Skip data-view guard  ──►  render &lt;iframe src="http://KIBANA/"&gt;     │
+        │                                                                        │
+        └─── [all other modules] ────────────────────────────────────────────┐  │
+                                                                              │  │
+             ensureDataViewId()  ──►  /api/opensearch  (repair index patterns)│  │
+             buildModuleOpenSearchUrl()                                       │  │
+             • /app/dashboards?embed=true&amp;security_tenant=global#/view/{id}   │  │
+             • /app/data-explorer/discover?embed=true#?...                   │  │
+             • /app/maps-dashboards?embed=true#/                             │  │
+             Proxy liveness check  ──►  render &lt;iframe src="/app/"&gt;           │  │
+                                                                              │  │
+  ◄─────────────────────────────────────────────────────────────────────────┘  │
+  ◄──────────────────────────────────────────────────────────────────────────────┘
+    </pre>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 2 ══════ -->
+<div class="page page-break">
+
+  <!-- 4. Source Tree -->
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <h2>Source Tree</h2>
+  </div>
+
+  <div class="filetree">
+<span class="dir">src/</span>
+<span class="file">├── App.jsx</span>          <span class="comment">← Main router + app state machine</span>
+<span class="file">├── main.jsx</span>         <span class="comment">← React DOM entry point</span>
+<span class="comment">│</span>
+<span class="dir">├── auth/</span>
+<span class="file">│   ├── keycloak.js</span>      <span class="comment">← OIDC + PKCE flow, token in sessionStorage</span>
+<span class="file">│   └── accessControl.js</span> <span class="comment">← Scope/permission checks, API token management</span>
+<span class="comment">│</span>
+<span class="dir">├── config/</span>
+<span class="file">│   ├── moduleConfig.js</span>  <span class="comment">← Menu structure for all 5 modules</span>
+<span class="file">│   └── opensearchViews.js</span> <span class="comment">← Per-view KQL queries, dashboard IDs, URL builders</span>
+<span class="comment">│</span>
+<span class="dir">├── api/</span>
+<span class="file">│   ├── opensearch.js</span>    <span class="comment">← Direct OpenSearch queries (/api/opensearch proxy)</span>
+<span class="file">│   ├── opensearchDashboards.js</span> <span class="comment">← Data view (index pattern) repair &amp; lookup</span>
+<span class="file">│   ├── cmt.js</span>           <span class="comment">← Case management &amp; ticketing (Keycloak-authed)</span>
+<span class="file">│   ├── edr.js</span>           <span class="comment">← EDR data from OpenSearch indices</span>
+<span class="file">│   ├── siemAlerts.js</span>    <span class="comment">← Live SIEM alert stream (SSE) + case creation</span>
+<span class="file">│   ├── responseActions.js</span> <span class="comment">← Manual analyst actions</span>
+<span class="file">│   ├── securityServices.js</span> <span class="comment">← Playbooks, approvals, threat hunting, audit</span>
+<span class="file">│   ├── kubernetes.js</span>   <span class="comment">← Kubernetes API for tenant management</span>
+<span class="file">│   ├── otelApi.js</span>      <span class="comment">← OpenTelemetry logs/traces/metrics</span>
+<span class="file">│   └── notifications.js</span> <span class="comment">← Alert notification delivery</span>
+<span class="comment">│</span>
+<span class="dir">└── components/</span>
+<span class="dir">    ├── Auth/</span>
+<span class="file">    │   └── Login.jsx</span>                  <span class="comment">← Login form UI</span>
+<span class="dir">    ├── Onboarding/</span>
+<span class="file">    │   └── TeamSelector.jsx</span>           <span class="comment">← Team/tenant picker shown after login</span>
+<span class="dir">    ├── Layout/</span>
+<span class="file">    │   ├── Navbar.jsx</span>                 <span class="comment">← Top bar (time range, search, user menu)</span>
+<span class="file">    │   ├── Sidebar.jsx</span>                <span class="comment">← Left nav (module menu items)</span>
+<span class="file">    │   ├── AlertCenter.jsx</span>            <span class="comment">← Toast notification center</span>
+<span class="file">    │   ├── ManualResponseDialog.jsx</span>   <span class="comment">← Incident response actions dialog</span>
+<span class="file">    │   └── SocOperationsDialog.jsx</span>    <span class="comment">← SOC workflow panel</span>
+<span class="dir">    ├── Dashboard/</span>
+<span class="file">    │   ├── IndexOverview.jsx</span>          <span class="comment">← OpenSearch index browser &amp; stats</span>
+<span class="file">    │   └── SecurityOverview.jsx</span>       <span class="comment">← High-level security metrics</span>
+<span class="dir">    ├── Pages/</span>
+<span class="file">    │   ├── SiemAlerts.jsx</span>             <span class="comment">← SIEM triage (React page, not iframe)</span>
+<span class="file">    │   ├── CmtDashboard.jsx</span>           <span class="comment">← Case management (React page, not iframe)</span>
+<span class="file">    │   ├── UnifiedReactDashboard.jsx</span>  <span class="comment">← React-based unified view</span>
+<span class="file">    │   ├── ObservabilityDashboard.jsx</span> <span class="comment">← OTel logs/traces/metrics</span>
+<span class="file">    │   ├── SocAutomationPage.jsx</span>      <span class="comment">← Playbook/automation workflows</span>
+<span class="file">    │   ├── Tenants.jsx</span>                <span class="comment">← Multi-tenant administration</span>
+<span class="file">    │   └── [EdrDashboard, Endpoints, Events, Malware].jsx</span>
+<span class="dir">    └── ui/</span>                            <span class="comment">← Radix UI + Tailwind design system</span>
+<span class="file">        └── alert, badge, button, card, dialog, input, select, skeleton, table ...</span>
+  </div>
+
+  <!-- 5. Module System -->
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <h2>Module System</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Module</th>
+        <th>Route</th>
+        <th>iframe Source</th>
+        <th>Index Patterns</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>siem</td>
+        <td><code>/siem</code></td>
+        <td>OpenSearch Dashboards</td>
+        <td><code>wazuh-alerts-4.x-*</code>, <code>wazuh-*</code></td>
+        <td>Wazuh-indexed SIEM events</td>
+      </tr>
+      <tr>
+        <td>ids</td>
+        <td><code>/ids</code></td>
+        <td>OpenSearch Dashboards</td>
+        <td><code>edr*</code>, <code>logs-*</code>, <code>wazuh-*</code></td>
+        <td>Suricata / Zeek IDS data</td>
+      </tr>
+      <tr>
+        <td>edr</td>
+        <td><code>/edr</code></td>
+        <td>OpenSearch Dashboards</td>
+        <td><code>edr*</code>, <code>edr-detections-*</code>, <code>tenant-*-edr*</code></td>
+        <td>EDR detections &amp; response actions</td>
+      </tr>
+      <tr>
+        <td>unified</td>
+        <td><code>/unifild</code></td>
+        <td><strong>Kibana</strong> (if <code>VITE_KIBANA_BASE_URL</code> set) <em>or</em> OpenSearch</td>
+        <td>All of the above combined</td>
+        <td>All Teams — recently migrated to Kibana</td>
+      </tr>
+      <tr>
+        <td>observability</td>
+        <td><code>/observability</code></td>
+        <td>OpenSearch Dashboards</td>
+        <td><code>opensearch_dashboards_sample_data_otel_*</code></td>
+        <td>OTel logs / traces / metrics</td>
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 3 ══════ -->
+<div class="page page-break">
+
+  <!-- 6. Proxy Routes -->
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <h2>Vite Proxy Routes (vite.config.js)</h2>
+  </div>
+
+  <ul class="route-list">
+    <li><span class="route-path">/api/opensearch/*</span><span class="route-arrow">→</span><span class="route-target">OpenSearch 196.188.249.46:9200 &nbsp;<span class="tag tag-green">always on</span></span></li>
+    <li><span class="route-path">/api/kubernetes/*</span><span class="route-arrow">→</span><span class="route-target">Kubernetes API 127.0.0.1:8001 &nbsp;<span class="tag tag-blue">K8s required</span></span></li>
+    <li><span class="route-path">/api/v1/agents/*</span><span class="route-arrow">→</span><span class="route-target">CMT Backend 192.168.1.28:8081 &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/api/v1/*</span><span class="route-arrow">→</span><span class="route-target">Kubernetes API (catch-all after /agents match)</span></li>
+    <li><span class="route-path">/api/siem-alerts/*</span><span class="route-arrow">→</span><span class="route-target">SIEM Alerts Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/auth, /cases, /alerts, /users, /webhooks, /ingest</span><span class="route-arrow">→</span><span class="route-target">CMT Backend root routes</span></li>
+    <li><span class="route-path">/api/playbooks/*</span><span class="route-arrow">→</span><span class="route-target">Playbook Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/api/response/*</span><span class="route-arrow">→</span><span class="route-target">Response Action Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/api/approvals/*</span><span class="route-arrow">→</span><span class="route-target">Approval Queue Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/api/threat-hunting/*</span><span class="route-arrow">→</span><span class="route-target">Threat Hunting Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/api/audit-service/*</span><span class="route-arrow">→</span><span class="route-target">Audit Service &nbsp;<span class="tag tag-amber">optional</span></span></li>
+    <li><span class="route-path">/app, /ui, /bootstrap.js, /startup.js, /translations, /internal, /goto, /api</span><span class="route-arrow">→</span><span class="route-target">OpenSearch Dashboards 196.188.249.46:5601 (iframe routes)</span></li>
+  </ul>
+
+  <!-- 7. Authentication Flow -->
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <h2>Authentication Flow (Keycloak PKCE)</h2>
+  </div>
+
+  <div class="arch-box">
+    <div class="flow" style="flex-wrap:nowrap; overflow-x:auto;">
+      <div class="flow-node blue">1. User hits /select</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node indigo">2. startKeycloakLogin()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="background:#7c3aed;">3. Keycloak /authorize<br/>&nbsp;&nbsp;?code_challenge=...</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">4. Code exchange<br/>&nbsp;&nbsp;→ access_token</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node cyan">5. Token in<br/>&nbsp;&nbsp;sessionStorage</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node amber">6. Bearer token<br/>&nbsp;&nbsp;on CMT calls</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-top:12px;">
+    <div class="card">
+      <div class="card-title"><span class="dot dot-indigo"></span>keycloak.js — Key Functions</div>
+      <ul>
+        <li><code>getKeycloakConfig()</code> — Read from window._env_ or import.meta.env</li>
+        <li><code>startKeycloakLogin()</code> — OIDC auth code + PKCE redirect</li>
+        <li><code>initializeKeycloakSession()</code> — Handle callback, exchange code</li>
+        <li><code>getKeycloakAccessToken()</code> — Return current token</li>
+        <li><code>logoutFromKeycloak()</code> — Logout + redirect</li>
+        <li><code>clearKeycloakSession()</code> — Clear sessionStorage</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-purple"></span>accessControl.js — Key Functions</div>
+      <ul>
+        <li><code>getConfiguredApiToken()</code> — Read from localStorage</li>
+        <li><code>setConfiguredApiToken()</code> — Store to localStorage</li>
+        <li><code>getConfiguredScopes()</code> — Extract from token + storage</li>
+        <li><code>hasRequiredScopes()</code> — Permission check</li>
+        <li><code>missingRequiredScopes()</code> — Return what's missing</li>
+        <li><code>scopeMatches()</code> — Wildcard scope matching (admin:*)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 8. Data Pipeline -->
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <h2>Data Pipeline (Docker Stack)</h2>
+  </div>
+
+  <div class="arch-box">
+    <div class="flow">
+      <div class="flow-node">Raw Security Logs</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node cyan">Kafka :9092<br/>(event buffer)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node blue">Vector 0.38<br/>(pipeline)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node green">OpenSearch 2.13<br/>:9200</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node indigo">Dashboards<br/>:5601</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node amber">React iframe<br/>/app/dashboards</div>
+    </div>
+  </div>
+
+  <table style="margin-top:12px;">
+    <thead>
+      <tr><th>Docker Service</th><th>Image</th><th>Port</th><th>Role</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>opensearch</td><td>opensearchproject/opensearch:2.13.0</td><td>9200</td><td>Search &amp; analytics engine</td></tr>
+      <tr><td>dashboards</td><td>opensearchproject/dashboards:2.13.0</td><td>5601</td><td>Visualization UI</td></tr>
+      <tr><td>dashboards-bootstrap</td><td>python:3.11</td><td>—</td><td>Init script — import saved objects</td></tr>
+      <tr><td>zookeeper</td><td>confluentinc/cp-zookeeper:7.5.0</td><td>2181</td><td>Kafka coordinator</td></tr>
+      <tr><td>kafka</td><td>confluentinc/cp-kafka:7.5.0</td><td>9092, 29092</td><td>Event streaming</td></tr>
+      <tr><td>kafka-ui</td><td>provectuslabs/kafka-ui</td><td>9090</td><td>Kafka admin UI</td></tr>
+      <tr><td>vector</td><td>timberio/vector:0.38.0</td><td>9598 (metrics)</td><td>Log routing &amp; transformation</td></tr>
+      <tr><td>security-dashboard</td><td>custom (nginx)</td><td>8080</td><td>Built React app + Nginx proxy</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ═══════════════════════════════════════════ PAGE 4 ══════ -->
+<div class="page page-break">
+
+  <!-- 9. API Clients -->
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <h2>API Client Layer (src/api/)</h2>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="card-title"><span class="dot dot-blue"></span>opensearch.js</div>
+      <ul>
+        <li>Direct OpenSearch cluster queries</li>
+        <li><code>GET /api/opensearch/_cat/indices</code></li>
+        <li><code>GET /api/opensearch/_search</code></li>
+        <li><code>GET /api/opensearch/{index}/_doc/{id}</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-blue"></span>opensearchDashboards.js</div>
+      <ul>
+        <li>Data view (index pattern) management</li>
+        <li>Auto-repair missing saved objects</li>
+        <li>Called before iframe renders</li>
+        <li>Supports multi-title fallback</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-green"></span>cmt.js — Case Management</div>
+      <ul>
+        <li>Keycloak Bearer token authed</li>
+        <li>SSE live update support</li>
+        <li>Routes: /auth, /cases, /alerts, /report-templates, /users, /webhooks</li>
+        <li>Fallback: /api/v1/agents</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-amber"></span>siemAlerts.js</div>
+      <ul>
+        <li>Real-time alert stream (SSE)</li>
+        <li>Case creation from triage</li>
+        <li>Alert acknowledgement</li>
+        <li>Enabled via VITE_SIEM_ALERTS_ENABLED</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-red"></span>edr.js</div>
+      <ul>
+        <li>EDR data from OpenSearch</li>
+        <li>Index: edr*, edr-detections-*, tenant-*-edr*</li>
+        <li>Detections, response actions, playbooks</li>
+        <li>Audit events, forensic data</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-purple"></span>securityServices.js</div>
+      <ul>
+        <li>Playbook orchestration</li>
+        <li>Approval queue management</li>
+        <li>Threat hunting campaigns</li>
+        <li>Audit service log export</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-cyan"></span>kubernetes.js</div>
+      <ul>
+        <li>Namespace management for multi-tenancy</li>
+        <li><code>/api/kubernetes/api/v1/namespaces</code></li>
+        <li>mTLS for direct cluster access</li>
+        <li>Kind cluster auto-detection</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot dot-indigo"></span>otelApi.js</div>
+      <ul>
+        <li>OpenTelemetry logs, traces, metrics</li>
+        <li>Index: opensearch_dashboards_sample_data_otel_*</li>
+        <li>Service map data</li>
+        <li>Distributed trace correlation</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 10. Key Configuration Reference -->
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <h2>Environment Variable Reference (.env)</h2>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td class="env-key">VITE_OPENSEARCH_PROXY_TARGET</td><td>196.188.249.46:9200</td><td>OpenSearch cluster endpoint</td></tr>
+      <tr><td class="env-key">VITE_DASHBOARDS_PROXY_TARGET</td><td>196.188.249.46:5601</td><td>OpenSearch Dashboards (iframes)</td></tr>
+      <tr><td class="env-key">VITE_KIBANA_BASE_URL</td><td>(unset)</td><td>Kibana host for Unified/All Teams iframes</td></tr>
+      <tr><td class="env-key">VITE_CMT_PROXY_TARGET</td><td>192.168.1.28:8081</td><td>Case management backend</td></tr>
+      <tr><td class="env-key">VITE_CMT_AUTO_CONNECT</td><td>true</td><td>Auto-connect CMT on startup</td></tr>
+      <tr><td class="env-key">VITE_CMT_USE_KEYCLOAK_TOKEN</td><td>true</td><td>Pass Keycloak token to CMT</td></tr>
+      <tr><td class="env-key">VITE_SIEM_ALERTS_ENABLED</td><td>false</td><td>Enable live SIEM alert stream</td></tr>
+      <tr><td class="env-key">VITE_SECURITY_SERVICES_ENABLED</td><td>false</td><td>Enable playbook/response services</td></tr>
+      <tr><td class="env-key">VITE_KUBERNETES_PROXY_TARGET</td><td>127.0.0.1:8001</td><td>Kubernetes API proxy</td></tr>
+      <tr><td class="env-key">VITE_DEV_SERVER_HOST</td><td>localhost</td><td>Vite dev server bind address</td></tr>
+      <tr><td class="env-key">VITE_DEV_SERVER_PORT</td><td>5173</td><td>Vite dev server port (strict)</td></tr>
+      <tr><td class="env-key">VITE_KEYCLOAK_URL</td><td>http://localhost:8080</td><td>Keycloak server URL</td></tr>
+      <tr><td class="env-key">VITE_KEYCLOAK_REALM</td><td>master</td><td>Keycloak realm name</td></tr>
+      <tr><td class="env-key">VITE_KEYCLOAK_CLIENT_ID</td><td>vite-app</td><td>Keycloak client ID</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Footer -->
+  <div class="footer">
+    BETA Security Dashboard — Architecture Document &nbsp;|&nbsp; Generated 2026-05-20 &nbsp;|&nbsp; Stack: React 18 · Vite · OpenSearch 2.13 · Keycloak OIDC
+  </div>
+
+</div>
+
+</body>
+</html>

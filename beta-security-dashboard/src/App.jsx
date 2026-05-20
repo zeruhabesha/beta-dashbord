@@ -9,6 +9,7 @@ import { IndexOverview } from './components/Dashboard/IndexOverview';
 import { ObservabilityDashboard } from './components/Pages/ObservabilityDashboard';
 import { SocAutomationPage, isSocAutomationView } from './components/Pages/SocAutomationPage';
 import { CmtDashboard, isCmtView, normalizeCmtView } from './components/Pages/CmtDashboard';
+import { UnifiedReactDashboard } from './components/Pages/UnifiedReactDashboard';
 import { ManualResponseDialog } from './components/Layout/ManualResponseDialog';
 import { SocOperationsDialog } from './components/Layout/SocOperationsDialog';
 import { Database, LogOut, RefreshCw, ShieldAlert } from 'lucide-react';
@@ -18,7 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { MODULE_CONFIG } from './config/moduleConfig';
-import { buildModuleOpenSearchUrl, getModuleDataViewTitles, getModuleOpenSearchView } from './config/opensearchViews';
+import { buildModuleKibanaUrl, buildModuleOpenSearchUrl, getModuleDataViewTitles, getModuleOpenSearchView } from './config/opensearchViews';
 import { ensureDataViewId } from './api/opensearchDashboards';
 import { clearKeycloakSession, initializeKeycloakSession, logoutFromKeycloak, startKeycloakLogin } from './auth/keycloak';
 
@@ -28,6 +29,7 @@ const MODULE_ROUTE_PATHS = {
     ids: '/ids',
     edr: '/edr',
     unified: '/unifild',
+    'unified-react': '/unified-react',
     observability: '/observability'
 };
 
@@ -37,6 +39,7 @@ const APP_ROUTE_CONFIG = {
     '/siem': { appState: 'dashboard', moduleId: 'siem', canonicalPath: '/siem' },
     '/ids': { appState: 'dashboard', moduleId: 'ids', canonicalPath: '/ids' },
     '/edr': { appState: 'dashboard', moduleId: 'edr', canonicalPath: '/edr' },
+    '/unified-react': { appState: 'unified-react', canonicalPath: '/unified-react' },
     '/unifild': { appState: 'dashboard', moduleId: 'unified', canonicalPath: '/unifild' },
     '/unified': { appState: 'dashboard', moduleId: 'unified', canonicalPath: '/unifild' },
     '/observability': { appState: 'dashboard', moduleId: 'observability', canonicalPath: '/observability' }
@@ -61,6 +64,10 @@ function getDashboardsBaseUrl() {
     return '';
 }
 
+// Direct Kibana base URL for the Unified (All Teams) module.
+// Set VITE_KIBANA_BASE_URL in .env to switch the unified iframe views to Kibana.
+const KIBANA_BASE_URL = (import.meta.env.VITE_KIBANA_BASE_URL || '').replace(/\/$/, '');
+
 function fallbackTimeFieldForModule(moduleId) {
     if (moduleId === 'edr') {
         return 'indexed_at';
@@ -84,6 +91,7 @@ function looksLikeOpenSearchDashboardsHtml(html) {
 function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetry }) {
     const isLoading = dataViewState.status === 'idle' || dataViewState.status === 'loading';
     const requestedTitles = dataViewState.requestedTitles?.join(', ') || 'module data view';
+    const isAutoRetrying = dataViewState.status === 'error' && dataViewState.autoRetrying;
 
     return (
         <div className="flex-1 overflow-y-auto p-6 bg-bg-body">
@@ -131,7 +139,9 @@ function OpenSearchDataViewGuard({ dataViewState, moduleTitle, viewTitle, onRetr
 
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <p className="text-sm font-semibold text-muted-foreground">
-                                BETA will create or repair the saved object through the same-origin API.
+                                {isAutoRetrying
+                                    ? 'BETA is retrying the saved-object lookup automatically after the backend repair.'
+                                    : 'BETA will create or repair the saved object through the same-origin API.'}
                             </p>
                             <Button
                                 type="button"
@@ -220,7 +230,7 @@ function OpenSearchFrameGuard({ frameState, dashboardUrl, onRetry }) {
 }
 
 function App() {
-    const [appState, setAppState] = useState('login'); // 'login' | 'team-select' | 'dashboard'
+    const [appState, setAppState] = useState('login'); // 'login' | 'team-select' | 'unified-react' | 'dashboard'
     const [activeModuleId, setActiveModuleId] = useState('siem');
     // activeView is now local to the module, assume default to start
     const [activeView, setActiveView] = useState(MODULE_CONFIG.siem?.defaultView || 'home');
@@ -272,6 +282,7 @@ function App() {
         requestedTitles: []
     });
     const [dataViewRetryKey, setDataViewRetryKey] = useState(0);
+    const dataViewAutoRetryRef = React.useRef({ key: '', attempts: 0 });
     const [dashboardsProxyState, setDashboardsProxyState] = useState({
         status: 'idle',
         error: '',
@@ -290,9 +301,12 @@ function App() {
         : { background: 'var(--bg-body)' };
     const moduleOpenSearchView = getModuleOpenSearchView(activeModuleId, activeView);
     const activeAlertFocus = alertFocus?.moduleId === activeModuleId && alertFocus?.viewId === activeView ? alertFocus : null;
-    const activeDataViewTitles = activeAlertFocus?.dataViewTitles?.length
-        ? activeAlertFocus.dataViewTitles
-        : getModuleDataViewTitles(activeModuleId);
+    const isKibanaModule = activeModuleId === 'unified' && Boolean(KIBANA_BASE_URL);
+    const activeDataViewTitles = isKibanaModule ? [] : (
+        activeAlertFocus?.dataViewTitles?.length
+            ? activeAlertFocus.dataViewTitles
+            : getModuleDataViewTitles(activeModuleId)
+    );
     const activeDataViewTitleKey = activeDataViewTitles.join('|');
     const activeDataViewTimeField = activeAlertFocus?.sortField
         || moduleOpenSearchView?.sortField
@@ -339,6 +353,7 @@ function App() {
 
     React.useEffect(() => {
         frameRecoveryAttemptsRef.current = 0;
+        dataViewAutoRetryRef.current = { key: activeDataViewTitleKey, attempts: 0 };
     }, [activeDataViewTitleKey, activeModuleId, activeView]);
 
     const recoverFromOpenSearchManagementRedirect = React.useCallback(() => {
@@ -365,7 +380,7 @@ function App() {
     React.useEffect(() => {
         let cancelled = false;
 
-        if (!activeDataViewTitles.length) {
+        if (appState !== 'dashboard' || !moduleOpenSearchView || !activeDataViewTitles.length) {
             setActiveDataViewId('');
             setDataViewState({
                 status: 'ready',
@@ -415,7 +430,8 @@ function App() {
                         title: '',
                         error: error.message || 'OpenSearch Dashboards data view repair failed.',
                         requestKey: activeDataViewTitleKey,
-                        requestedTitles: activeDataViewTitles
+                        requestedTitles: activeDataViewTitles,
+                        autoRetrying: dataViewAutoRetryRef.current.attempts < 5
                     });
                 }
             });
@@ -423,7 +439,34 @@ function App() {
         return () => {
             cancelled = true;
         };
-    }, [activeDataViewFieldKey, activeDataViewTitleKey, activeDataViewTimeField, dataViewRetryKey]);
+    }, [activeDataViewFieldKey, activeDataViewTitleKey, activeDataViewTimeField, appState, dataViewRetryKey, moduleOpenSearchView]);
+
+    React.useEffect(() => {
+        const isCurrentDataViewError = dataViewState.status === 'error'
+            && dataViewState.requestKey === activeDataViewTitleKey
+            && activeDataViewTitles.length > 0;
+
+        if (!isCurrentDataViewError) {
+            return undefined;
+        }
+
+        const retryKey = `${activeDataViewTitleKey}:${dataViewState.error || 'data-view-error'}`;
+        if (dataViewAutoRetryRef.current.key !== retryKey) {
+            dataViewAutoRetryRef.current = { key: retryKey, attempts: 0 };
+        }
+
+        if (dataViewAutoRetryRef.current.attempts >= 5) {
+            return undefined;
+        }
+
+        dataViewAutoRetryRef.current.attempts += 1;
+        const delayMs = Math.min(1500 * dataViewAutoRetryRef.current.attempts, 6000);
+        const timeoutId = window.setTimeout(() => {
+            setDataViewRetryKey((value) => value + 1);
+        }, delayMs);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [activeDataViewTitleKey, activeDataViewTitles.length, dataViewState.error, dataViewState.requestKey, dataViewState.status]);
 
     React.useEffect(() => {
         const handlePopState = () => {
@@ -495,6 +538,15 @@ function App() {
             return;
         }
 
+        if (activeRouteConfig.appState === 'unified-react') {
+            setAlertFocus(null);
+            setSearchQuery('');
+            setAppState('unified-react');
+            setActiveModuleId('unified');
+            setActiveView(MODULE_CONFIG.unified?.defaultView || 'home');
+            return;
+        }
+
         const nextModuleId = activeRouteConfig.moduleId || 'siem';
 
         setAlertFocus(null);
@@ -511,7 +563,9 @@ function App() {
 
         const expectedPath = appState === 'team-select'
             ? DEFAULT_ROUTE_PATH
-            : getModuleRoutePath(activeModuleId);
+            : appState === 'unified-react'
+                ? getModuleRoutePath('unified-react')
+                : getModuleRoutePath(activeModuleId);
 
         if (expectedPath !== currentPath) {
             syncBrowserPath(expectedPath, { stateDriven: true });
@@ -558,6 +612,26 @@ function App() {
         }
     };
 
+    const openModuleView = React.useCallback((moduleId, viewId) => {
+        const nextModuleId = moduleId || 'unified';
+
+        clearAlertFocus();
+        setSearchQuery('');
+
+        if (nextModuleId === 'unified-react' || (appState === 'unified-react' && nextModuleId === 'unified')) {
+            setAppState('unified-react');
+            setActiveModuleId('unified');
+            setActiveView(viewId || MODULE_CONFIG.unified?.defaultView || 'home');
+            syncBrowserPath(getModuleRoutePath('unified-react'), { stateDriven: true });
+            return;
+        }
+
+        setAppState('dashboard');
+        setActiveModuleId(nextModuleId);
+        setActiveView(viewId || MODULE_CONFIG[nextModuleId]?.defaultView || 'home');
+        syncBrowserPath(getModuleRoutePath(nextModuleId), { stateDriven: true });
+    }, [appState, syncBrowserPath]);
+
     const handleManualResponseSubmitted = () => {
         if (!canUseManualResponse) {
             setActiveModuleId('edr');
@@ -583,8 +657,18 @@ function App() {
         }
     };
 
-    // Construct iframe URL for OpenSearch views
+    // Construct iframe URL for OpenSearch/Kibana views
     const getDashboardUrl = () => {
+        if (isKibanaModule) {
+            return buildModuleKibanaUrl({
+                moduleId: activeModuleId,
+                baseUrl: KIBANA_BASE_URL,
+                timeRange,
+                searchQuery,
+                viewId: activeView
+            });
+        }
+
         const baseUrl = getDashboardsBaseUrl();
         // Pass theme param to OpenSearch Dashboards
         const themeParam = isDarkMode ? 'dark' : 'light';
@@ -634,7 +718,8 @@ function App() {
     React.useEffect(() => {
         let cancelled = false;
 
-        if (appState !== 'dashboard' || !moduleOpenSearchView || shouldGuardOpenSearchFrame) {
+        // Kibana iframes load directly — no same-origin proxy check needed.
+        if (isKibanaModule || appState !== 'dashboard' || !moduleOpenSearchView || shouldGuardOpenSearchFrame) {
             setDashboardsProxyState({
                 status: 'idle',
                 error: '',
@@ -695,9 +780,9 @@ function App() {
         return () => {
             cancelled = true;
         };
-    }, [appState, dashboardUrl, moduleOpenSearchView, openSearchFrameRecoveryKey, shouldGuardOpenSearchFrame]);
+    }, [appState, dashboardUrl, isKibanaModule, moduleOpenSearchView, openSearchFrameRecoveryKey, shouldGuardOpenSearchFrame]);
 
-    const shouldGuardOpenSearchProxy = Boolean(
+    const shouldGuardOpenSearchProxy = !isKibanaModule && Boolean(
         moduleOpenSearchView
         && !shouldGuardOpenSearchFrame
         && dashboardsProxyState.status !== 'ready'
@@ -733,6 +818,15 @@ function App() {
                 onSelectTeam={(moduleId) => {
                     clearAlertFocus();
                     setSearchQuery('');
+
+                    if (moduleId === 'unified-react') {
+                        setAppState('unified-react');
+                        setActiveModuleId('unified');
+                        setActiveView(MODULE_CONFIG.unified?.defaultView || 'home');
+                        syncBrowserPath(getModuleRoutePath('unified-react'), { stateDriven: true });
+                        return;
+                    }
+
                     setActiveModuleId(moduleId);
                     setActiveView(MODULE_CONFIG[moduleId]?.defaultView || 'home');
                     setAppState('dashboard');
@@ -751,6 +845,14 @@ function App() {
                 moduleId={activeModuleId}
                 activeTimeRange={timeRange}
                 onViewChange={(viewId) => {
+                    if (appState === 'unified-react') {
+                        clearAlertFocus();
+                        setSearchQuery('');
+                        setActiveView(viewId);
+                        syncBrowserPath(getModuleRoutePath('unified-react'), { stateDriven: true });
+                        return;
+                    }
+
                     clearAlertFocus();
                     setActiveView(viewId);
                 }}
@@ -842,7 +944,18 @@ function App() {
                 {/* Dashboard Content */}
                 <main className="flex-1 flex overflow-hidden relative">
 
-                    {activeView === 'tenants' ? (
+                    {appState === 'unified-react' ? (
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden" style={pageShellStyle}>
+                            <UnifiedReactDashboard
+                                activeView={activeView}
+                                timeRange={timeRange}
+                                operator={user}
+                                onOpenModule={openModuleView}
+                                onManualResponse={() => setIsManualResponseOpen(true)}
+                                onSocOperations={() => setIsSocOperationsOpen(true)}
+                            />
+                        </div>
+                    ) : activeView === 'tenants' ? (
                         <div className="flex-1 overflow-y-auto p-6" style={pageShellStyle}>
                             <Tenants />
                         </div>
@@ -900,7 +1013,7 @@ function App() {
                                     key={openSearchFrameKey}
                                     src={dashboardUrl}
                                     className={iframeClassName}
-                                    title={`OpenSearch Dashboard - ${activeView}`}
+                                    title={`${isKibanaModule ? 'Kibana' : 'OpenSearch'} Dashboard - ${activeView}`}
                                     onLoad={recoverFromOpenSearchManagementRedirect}
                                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals allow-pointer-lock allow-top-navigation-by-user-activation"
                                 />

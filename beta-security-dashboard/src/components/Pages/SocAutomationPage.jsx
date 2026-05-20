@@ -121,16 +121,14 @@ const UI_API_NEEDS = [
     ['Playbooks', 'GET executions/config; POST pause/resume/cancel/validate/simulate; PATCH execution context'],
     ['Response', 'POST manual action; POST replay; POST rollback; POST artifact validate; GET forensics download'],
     ['Audit/Forensics', 'GET audit events/export; GET forensic evidence/export'],
-    ['Threat Hunting', 'GET hunts/schedules; POST IOC sweeps/schedules; PATCH/DELETE schedules'],
-    ['Health/Metrics', 'GET /healthz; GET /readyz where available; GET /metrics on service ports']
+    ['Threat Hunting', 'GET hunts/schedules; POST IOC sweeps/schedules; PATCH/DELETE schedules']
 ];
 
 const MISSING_UI_APIS = [
     'GET /api/v1/response/dlq for failed action selection before replay',
     'GET /api/v1/response/actions for response action history/status',
     'GET /api/v1/auth/scopes or GET /api/v1/me for dynamic scope discovery',
-    'GET /api/v1/dashboard/summary for aggregated SOC overview counts',
-    'GET /api/v1/services/status for unified backend health'
+    'GET /api/v1/dashboard/summary for aggregated SOC overview counts'
 ];
 
 export function isSocAutomationView(moduleId, viewId) {
@@ -520,23 +518,16 @@ function useMutation() {
 
 function OverviewPage({ scopes }) {
     const loader = React.useCallback(async () => {
-        const [approvals, executions, auditEvents, evidence, hunts, schedules, health] = await Promise.allSettled([
+        const [approvals, executions, auditEvents, evidence, hunts, schedules] = await Promise.allSettled([
             callSecurityService('approvals', '/api/v1/approvals'),
             callSecurityService('playbooks', '/api/v1/playbooks/executions'),
             callSecurityService('audit', '/api/v1/audit/events', { query: { limit: 10 } }),
             callSecurityService('audit', '/api/v1/forensics/evidence'),
             callSecurityService('hunts', '/api/v1/hunts'),
-            callSecurityService('hunts', '/api/v1/hunts/schedules'),
-            Promise.allSettled([
-                callSecurityService('playbooks', '/healthz'),
-                callSecurityService('response', '/healthz'),
-                callSecurityService('approvals', '/healthz'),
-                callSecurityService('hunts', '/healthz'),
-                callSecurityService('audit', '/healthz')
-            ])
+            callSecurityService('hunts', '/api/v1/hunts/schedules')
         ]);
 
-        return { approvals, executions, auditEvents, evidence, hunts, schedules, health };
+        return { approvals, executions, auditEvents, evidence, hunts, schedules };
     }, []);
     const { data, loading, error, reload } = useApiResource(loader, [loader], { autoRefreshMs: 30000 });
 
@@ -581,18 +572,14 @@ function OverviewPage({ scopes }) {
                     </Card>
                 ))}
             </div>
-            <Panel title="Service Health Indicators" badge="healthz">
+            <Panel title="Service Status" badge="health checks disabled">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                    {healthItems.map((label, index) => {
-                        const result = data?.health?.value?.[index];
-                        const healthy = result?.status === 'fulfilled';
-                        return (
-                            <div key={label} className={`rounded-2xl border p-4 text-sm ${healthy ? 'border-success/25 bg-success/10 text-success' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
-                                <div className="font-semibold">{label}</div>
-                                <div className="mt-1">{healthy ? 'healthy' : 'unreachable'}</div>
-                            </div>
-                        );
-                    })}
+                    {healthItems.map((label) => (
+                        <div key={label} className="rounded-2xl border border-muted bg-muted/30 p-4 text-sm text-muted-foreground">
+                            <div className="font-semibold text-foreground">{label}</div>
+                            <div className="mt-1">not queried</div>
+                        </div>
+                    ))}
                 </div>
             </Panel>
             <ApiNeedsPanel />
@@ -972,8 +959,8 @@ function PlatformStatusPage({ scopes, activeView }) {
         ['audit', 'audit-service', '9096']
     ];
     const loader = React.useCallback(async () => {
-        const status = await Promise.allSettled(services.map(([service]) => callSecurityService(service, '/healthz')));
-        const readiness = await Promise.allSettled(services.map(([service]) => callSecurityService(service, '/readyz')));
+        const status = services.map(() => ({ status: 'skipped' }));
+        const readiness = services.map(() => ({ status: 'skipped' }));
         return { status, readiness };
     }, []);
     const { data, loading, error, reload } = useApiResource(loader, [loader], { autoRefreshMs: 30000 });
@@ -983,17 +970,17 @@ function PlatformStatusPage({ scopes, activeView }) {
             <PageHeader title={PAGE_TITLES[activeView]?.[0] || 'Platform Status'} description={PAGE_TITLES[activeView]?.[1] || 'Operational service status and API needs for the enhanced response UI.'} onRefresh={reload} loading={loading} />
             <ScopeHint requiredScopes={['playbooks:read', 'response:manual', 'approvals:read', 'hunts:read', 'audit:read']} scopes={scopes} />
             {error && <Notice type="error">{error}</Notice>}
-            <Panel title="Service Health And Readiness" badge="auto-refresh 30s">
+            <Panel title="Service Health And Readiness" badge="health checks disabled">
                 <div className="grid gap-3 md:grid-cols-5">
                     {services.map(([service, label, port], index) => {
                         const healthOk = data?.status?.[index]?.status === 'fulfilled';
                         const readyOk = data?.readiness?.[index]?.status === 'fulfilled';
 
                         return (
-                            <div key={service} className={`rounded-2xl border p-4 text-sm ${healthOk ? 'border-success/25 bg-success/10 text-success' : 'border-destructive/30 bg-destructive/10 text-destructive'}`}>
+                            <div key={service} className="rounded-2xl border border-muted bg-muted/30 p-4 text-sm text-muted-foreground">
                                 <div className="font-semibold">{label}</div>
-                                <div className="mt-1">healthz: {healthOk ? 'healthy' : 'unreachable'}</div>
-                                <div className="mt-1">readyz: {readyOk ? 'ready' : 'not exposed/unready'}</div>
+                                <div className="mt-1">health probe: disabled</div>
+                                <div className="mt-1">readiness probe: disabled</div>
                                 <div className="mt-1">metrics: :{port}/metrics</div>
                             </div>
                         );

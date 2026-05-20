@@ -36,7 +36,16 @@ export function TeamSelector({ onSelectTeam }) {
             id: 'unified',
             title: 'Unified SOC',
             icon: Layers,
-            description: 'Combined view of all security modules for full visibility.',
+            description: 'Open the current OpenSearch-backed unified security dashboard.',
+            color: 'text-neutral-950',
+            bg: 'bg-neutral-50',
+            border: 'hover:border-primary/40'
+        },
+        {
+            id: 'unified-react',
+            title: 'Unified (React) Dashboard',
+            icon: Layers,
+            description: 'Native React and shadcn unified SOC dashboard without OpenSearch iframe.',
             color: 'text-neutral-950',
             bg: 'bg-neutral-50',
             border: 'hover:border-primary/40'
@@ -70,7 +79,7 @@ export function TeamSelector({ onSelectTeam }) {
                 </p>
             </div>
 
-            <div className="z-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl px-6 w-full">
+            <div className="z-10 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-6xl px-6 w-full">
                 {teams.map((team) => (
                     <Card key={team.id} className={`group relative transition-colors duration-200 ${team.border}`}>
                         <button

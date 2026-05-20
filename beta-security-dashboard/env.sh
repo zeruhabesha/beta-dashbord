@@ -17,10 +17,12 @@ window._env_ = {
   "THREAT_HUNTING_SERVICE_API": "${VITE_THREAT_HUNTING_SERVICE_API-/api/threat-hunting}",
   "SECURITY_SERVICES_ENABLED": "${VITE_SECURITY_SERVICES_ENABLED-${SECURITY_SERVICES_ENABLED-false}}",
   "SIEM_ALERTS_ENABLED": "${VITE_SIEM_ALERTS_ENABLED-${SIEM_ALERTS_ENABLED-false}}",
-  "CMT_API_BASE": "${VITE_CMT_API_BASE-/api/cmt}",
-  "CMT_AUTO_CONNECT": "${VITE_CMT_AUTO_CONNECT-false}",
+  "CMT_API_BASE": "${VITE_CMT_API_BASE-}",
+  "CMT_AUTO_CONNECT": "${VITE_CMT_AUTO_CONNECT-true}",
   "CMT_REQUEST_TIMEOUT_MS": "${VITE_CMT_REQUEST_TIMEOUT_MS-4500}",
-  "CMT_ENABLE_SSE": "${VITE_CMT_ENABLE_SSE-false}"
+  "CMT_ENABLE_SSE": "${VITE_CMT_ENABLE_SSE-true}",
+  "CMT_REQUIRE_AUTH_SESSION": "${VITE_CMT_REQUIRE_AUTH_SESSION-false}",
+  "CMT_USE_KEYCLOAK_TOKEN": "${VITE_CMT_USE_KEYCLOAK_TOKEN-true}"
 };
 EOF
 
@@ -136,9 +138,9 @@ server {
         proxy_ssl_verify off;
     }
 
-    location /alerts/ {
+    location /api/siem-alerts/ {
         set \$backend "${SIEM_ALERTS_PROXY_TARGET}";
-        rewrite ^/alerts/?(.*)$ /\$1 break;
+        rewrite ^/api/siem-alerts/?(.*)$ /\$1 break;
         proxy_pass \$backend;
         proxy_http_version 1.1;
         proxy_buffering off;
@@ -153,9 +155,8 @@ server {
         proxy_ssl_verify off;
     }
 
-    location /api/cmt/ {
+    location ~ ^/(auth|cases|alerts|report-templates|users|webhooks|ingest)(/|$) {
         set \$backend "${CMT_PROXY_TARGET}";
-        rewrite ^/api/cmt/?(.*)$ /\$1 break;
         proxy_pass \$backend;
         proxy_http_version 1.1;
         proxy_buffering off;

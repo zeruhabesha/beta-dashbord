@@ -947,6 +947,31 @@ export function getModuleDataViewTitles(moduleId) {
     return OPENSEARCH_MODULE_VIEWS[moduleId]?.dataViewTitles || [];
 }
 
+export function buildModuleKibanaUrl({ moduleId, baseUrl, timeRange, searchQuery, viewId }) {
+    const viewConfig = getModuleOpenSearchView(moduleId, viewId);
+    const embedParam = 'embed=true';
+
+    if (!viewConfig) {
+        return `${baseUrl}/app/discover?${embedParam}#/?${buildGlobalState(timeRange)}`;
+    }
+
+    if (viewConfig.app === 'maps') {
+        return `${baseUrl}/app/maps?${embedParam}#/`;
+    }
+
+    if (viewConfig.dashboardId) {
+        const queryPart = searchQuery?.trim()
+            ? `&_a=(query:(language:kuery,query:${toRisonString(searchQuery.trim())}))`
+            : '';
+        return `${baseUrl}/app/dashboards?${embedParam}#/view/${viewConfig.dashboardId}?${buildGlobalState(timeRange)}${queryPart}`;
+    }
+
+    // Discover-like view (no dashboardId)
+    const query = viewConfig.query || '';
+    const queryPart = query ? `&_a=(query:(language:kuery,query:${toRisonString(query)}))` : '';
+    return `${baseUrl}/app/discover?${embedParam}#/?${buildGlobalState(timeRange)}${queryPart}`;
+}
+
 export function buildModuleOpenSearchUrl({ moduleId, baseUrl, theme, timeRange, searchQuery, dataViewId, viewId, alertFocus }) {
     const viewConfig = getModuleOpenSearchView(moduleId, viewId);
     const embedParams = buildEmbedParams(theme);

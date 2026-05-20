@@ -4,9 +4,16 @@ import {
     Activity,
     AlertTriangle,
     Archive,
+    ArrowLeft,
     Bell,
     CheckCircle,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight,
     Clock3,
+    Save,
     Download,
     FileText,
     Globe,
@@ -45,6 +52,7 @@ import {
     createManualCase,
     createReportTemplate,
     deleteCase,
+    deleteCaseNote,
     deleteAlertAsset,
     deleteAlertIoc,
     deleteAlertLabel,
@@ -54,7 +62,6 @@ import {
     ensureCmtSession,
     generateCaseReport,
     getCase,
-    getCmtHealth,
     listCaseAudit,
     listCaseEvidence,
     listCaseNotes,
@@ -65,19 +72,25 @@ import {
     listReportTemplates,
     listSlaBreachedCases,
     listUsers,
+    loginCmt,
+    getCurrentCmtUser,
     linkCaseAlert,
     notifyCase,
     previewReportTemplate,
     promoteAlertToCase,
+    isCmtUnauthorized,
     setAlertAnomaly,
     setCaseArchived,
     setCaseEscalated,
     unlinkCaseAlert,
     updateCaseWebhook,
     updateCaseStatus,
+    updateCaseNote,
     updateReportTemplate,
     updateUserCustomers,
-    uploadCaseEvidence
+    uploadCaseEvidence,
+    getAgentDashboardSummary,
+    listAgentVersions
 } from '../../api/cmt';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -286,17 +299,200 @@ const CMT_ROUTE_VIEW_MAP = {
     'cmt-sla': 'sla',
     'cmt-reports': 'reports',
     'cmt-users': 'users',
-    'cmt-webhooks': 'webhooks'
+    'cmt-webhooks': 'webhooks',
+    'cmt-agents': 'agents'
 };
 
-const CMT_INTERNAL_VIEWS = new Set(['overview', 'alerts', 'cases', 'sla', 'reports', 'users', 'webhooks']);
+const CMT_INTERNAL_VIEWS = new Set(['overview', 'alerts', 'cases', 'sla', 'reports', 'users', 'webhooks', 'agents']);
+const CMT_ALERT_ANNOTATION_STORAGE_KEY = 'cmt_alert_annotations_v1';
+const CMT_ALERT_ANNOTATION_FIELDS = new Set(['labels', 'iocs', 'assets']);
 
 function asArray(payload, key) {
     if (Array.isArray(payload)) return payload;
     if (Array.isArray(payload?.[key])) return payload[key];
     if (Array.isArray(payload?.items)) return payload.items;
     if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.data?.[key])) return payload.data[key];
+    if (Array.isArray(payload?.result?.[key])) return payload.result[key];
+    if (Array.isArray(payload?.results)) return payload.results;
+    if (Array.isArray(payload?.records)) return payload.records;
     return [];
+}
+
+function firstObjectFromPayload(payload, key) {
+    const candidates = [
+        Array.isArray(payload) ? payload[0] : null,
+        Array.isArray(payload?.data) ? payload.data[0] : null,
+        Array.isArray(payload?.items) ? payload.items[0] : null,
+        Array.isArray(payload?.results) ? payload.results[0] : null,
+        Array.isArray(payload?.records) ? payload.records[0] : null,
+        payload?.case,
+        payload?.data?.case,
+        payload?.data?.[key],
+        payload?.result?.case,
+        payload?.result?.[key],
+        payload?.item,
+        payload?.record
+    ];
+    const found = candidates.find((item) => item && typeof item === 'object' && !Array.isArray(item));
+
+    if (found) return found;
+    if (payload && typeof payload === 'object' && !Array.isArray(payload) && (payload.id || payload.case_id || payload.title || payload.summary)) {
+        return payload;
+    }
+
+    return null;
+}
+
+function flattenAnnotationValue(value) {
+    if (value == null || value === '') return [];
+    if (Array.isArray(value)) return value.flatMap(flattenAnnotationValue);
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return [];
+
+        if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+            try {
+                return flattenAnnotationValue(JSON.parse(trimmed));
+            } catch (_error) {
+                return [trimmed];
+            }
+        }
+
+        return trimmed.includes(',')
+            ? trimmed.split(',').map((item) => item.trim()).filter(Boolean)
+            : [trimmed];
+    }
+
+    if (typeof value === 'object') {
+        return flattenAnnotationValue(
+            value.value
+            ?? value.label
+            ?? value.name
+            ?? value.ioc
+            ?? value.ioc_value
+            ?? value.indicator
+            ?? value.indicator_value
+            ?? value.asset
+            ?? value.asset_id
+            ?? value.hostname
+            ?? value.host
+            ?? value.file_path
+            ?? value.path
+            ?? value.ip_address
+            ?? value.domain
+            ?? value.file_hash
+            ?? value.process_name
+            ?? value.registry_key
+            ?? value.hash
+            ?? ''
+        );
+    }
+
+    return [String(value)];
+}
+
+function asTextList(...values) {
+    const seen = new Set();
+    return values
+        .flatMap(flattenAnnotationValue)
+        .map((value) => String(value).trim())
+        .filter((value) => {
+            if (!value || seen.has(value)) return false;
+            seen.add(value);
+            return true;
+        });
+}
+
+function alertAnnotationId(alert) {
+    return String(alert?.source_alert_id || alert?.alert_id || alert?.id || '');
+}
+
+function normalizeStoredAnnotations(bucket) {
+    return {
+        labels: asTextList(bucket?.labels),
+        iocs: asTextList(bucket?.iocs),
+        assets: asTextList(bucket?.assets)
+    };
+}
+
+function normalizeAlertAnnotations(alert) {
+    return {
+        ...alert,
+        labels: asTextList(alert?.labels, alert?.label, alert?.alert_labels, alert?.label_names, alert?.tags),
+        iocs: asTextList(alert?.iocs, alert?.ioc, alert?.ioc_values, alert?.indicators, alert?.indicators_of_compromise, alert?.indicator_values),
+        assets: asTextList(alert?.assets, alert?.asset, alert?.asset_values, alert?.asset_ids, alert?.affected_assets, alert?.hosts, alert?.hostnames)
+    };
+}
+
+function readStoredAlertAnnotations() {
+    if (typeof window === 'undefined') return {};
+
+    try {
+        const parsed = JSON.parse(window.localStorage.getItem(CMT_ALERT_ANNOTATION_STORAGE_KEY) || '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_error) {
+        return {};
+    }
+}
+
+function writeStoredAlertAnnotations(store) {
+    if (typeof window === 'undefined') return;
+
+    try {
+        window.localStorage.setItem(CMT_ALERT_ANNOTATION_STORAGE_KEY, JSON.stringify(store));
+    } catch (_error) {
+        // Annotation persistence is a UX fallback; failed storage must not block live API operations.
+    }
+}
+
+function mergeAlertAnnotations(alertList) {
+    const stored = readStoredAlertAnnotations();
+
+    return alertList.map((alert) => {
+        const normalized = normalizeAlertAnnotations(alert);
+        const saved = normalizeStoredAnnotations(stored[alertAnnotationId(normalized)]);
+
+        return {
+            ...normalized,
+            labels: asTextList(normalized.labels, saved.labels),
+            iocs: asTextList(normalized.iocs, saved.iocs),
+            assets: asTextList(normalized.assets, saved.assets)
+        };
+    });
+}
+
+function storeAlertAnnotationValues(alertId, key, values) {
+    const id = String(alertId || '');
+    if (!id || !CMT_ALERT_ANNOTATION_FIELDS.has(key)) return asTextList(values);
+
+    const store = readStoredAlertAnnotations();
+    const nextBucket = {
+        ...normalizeStoredAnnotations(store[id]),
+        [key]: asTextList(values)
+    };
+
+    if (nextBucket.labels.length || nextBucket.iocs.length || nextBucket.assets.length) {
+        store[id] = nextBucket;
+    } else {
+        delete store[id];
+    }
+
+    writeStoredAlertAnnotations(store);
+    return nextBucket[key];
+}
+
+function updateAlertAnnotationList(alert, key, updater) {
+    const normalized = normalizeAlertAnnotations(alert);
+    return asTextList(updater(normalized[key] || []));
+}
+
+function applyAlertAnnotationValues(alertList, alertId, key, values) {
+    const id = String(alertId || '');
+    return alertList.map((item) => alertAnnotationId(item) === id
+        ? { ...normalizeAlertAnnotations(item), [key]: asTextList(values) }
+        : item);
 }
 
 function itemId(item, fallback = 'item') {
@@ -311,15 +507,176 @@ function caseDescription(item) {
     return item?.description || item?.summary || 'No case description provided.';
 }
 
+function normalizeManualCase(payload, fallbackId) {
+    const now = new Date().toISOString();
+
+    return {
+        ...payload,
+        id: payload.id || payload.case_id || fallbackId,
+        case_id: payload.case_id || payload.id || fallbackId,
+        title: payload.title || payload.summary || 'Manual case',
+        summary: payload.summary || payload.title || 'Manual case',
+        description: payload.description || payload.summary || '',
+        severity: payload.severity || 'high',
+        status: payload.status || 'open',
+        owner: payload.owner || payload.owner_id || 'unassigned',
+        owner_id: payload.owner_id || payload.owner || 'unassigned',
+        customer_code: payload.customer_code || '',
+        escalated: Boolean(payload.escalated),
+        archived: Boolean(payload.archived),
+        created_at: payload.created_at || now,
+        updated_at: payload.updated_at || now,
+        sla_due_at: payload.sla_due_at || new Date(Date.now() + 60 * 60 * 1000).toISOString()
+    };
+}
+
+function upsertCaseRow(rows, nextCase, replaceId = '') {
+    const nextId = itemId(nextCase);
+    const replaced = rows.some((item) => itemId(item) === nextId || (replaceId && itemId(item) === replaceId));
+    const nextRows = rows.map((item) => (itemId(item) === nextId || (replaceId && itemId(item) === replaceId)) ? nextCase : item);
+    return replaced ? nextRows : [nextCase, ...nextRows];
+}
+
+function sameCaseText(left, right) {
+    return String(left || '').trim().toLowerCase() === String(right || '').trim().toLowerCase();
+}
+
+function caseMatchesManualPayload(caseItem, payload, submittedAtMs) {
+    const createdAt = new Date(caseItem?.created_at || caseItem?.updated_at || 0).getTime();
+    const isRecent = !Number.isFinite(createdAt) || createdAt === 0 || createdAt >= submittedAtMs - 60 * 1000;
+    const titleMatches = sameCaseText(caseItem?.title || caseItem?.summary, payload.title || payload.summary);
+    const customerMatches = !payload.customer_code || sameCaseText(caseItem?.customer_code, payload.customer_code);
+    const severityMatches = !payload.severity || sameCaseText(caseItem?.severity, payload.severity);
+
+    return isRecent && titleMatches && customerMatches && severityMatches;
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => {
+        window.setTimeout(resolve, ms);
+    });
+}
+
+async function waitForPersistedManualCase(payload, response, submittedAtMs) {
+    const responseCase = firstObjectFromPayload(response, 'cases');
+    const responseId = responseCase ? itemId(responseCase, '') : '';
+    let latestRows = [];
+
+    for (const delayMs of [0, 500, 1500, 3000]) {
+        if (delayMs) await sleep(delayMs);
+
+        if (responseId) {
+            try {
+                const detail = await getCase(responseId);
+                const detailCase = firstObjectFromPayload(detail, 'cases') || firstObjectFromPayload(detail, 'case');
+                if (detailCase && itemId(detailCase, '') === responseId) {
+                    return {
+                        case: detailCase,
+                        rows: upsertCaseRow(latestRows, detailCase)
+                    };
+                }
+            } catch (_error) {
+                // Fall back to the list endpoint below; some backends create but do not expose detail immediately.
+            }
+        }
+
+        const listResponse = await listCases({ archived: false, page: 1, page_size: 100, order: 'desc' });
+        latestRows = asArray(listResponse, 'cases');
+        const persistedCase = responseId
+            ? latestRows.find((item) => itemId(item, '') === responseId)
+            : latestRows.find((item) => caseMatchesManualPayload(item, payload, submittedAtMs));
+
+        if (persistedCase) {
+            return {
+                case: persistedCase,
+                rows: latestRows
+            };
+        }
+    }
+
+    return {
+        case: null,
+        rows: latestRows
+    };
+}
+
+function caseMatchesPromotedAlert(caseItem, alert, submittedAtMs) {
+    const createdAt = new Date(caseItem?.created_at || caseItem?.updated_at || 0).getTime();
+    const isRecent = !Number.isFinite(createdAt) || createdAt === 0 || createdAt >= submittedAtMs - 60 * 1000;
+    const sourceAlertId = alertAnnotationId(alert);
+    const linkedIds = linkedAlertIds(caseItem).map(String);
+    const title = alertTitle(alert);
+    const description = alert?.description || alert?.rule_description || '';
+    const caseText = [
+        caseItem?.title,
+        caseItem?.summary,
+        caseItem?.description,
+        caseItem?.rule_description
+    ].filter(Boolean).join(' ').toLowerCase();
+    const titleMatches = title && (sameCaseText(caseItem?.title || caseItem?.summary, title) || caseText.includes(title.toLowerCase()));
+    const descriptionMatches = description && caseText.includes(String(description).toLowerCase());
+    const severityMatches = !alert?.severity || sameCaseText(caseItem?.severity, alert.severity);
+    const customerMatches = !alert?.customer_code || sameCaseText(caseItem?.customer_code, alert.customer_code);
+
+    return isRecent && customerMatches && (
+        (sourceAlertId && linkedIds.includes(String(sourceAlertId)))
+        || ((titleMatches || descriptionMatches) && severityMatches)
+    );
+}
+
+async function waitForPersistedPromotedCase(alert, response, submittedAtMs) {
+    const responseCase = firstObjectFromPayload(response, 'cases') || firstObjectFromPayload(response, 'case');
+    const responseId = responseCase ? itemId(responseCase, '') : '';
+    let latestRows = [];
+
+    for (const delayMs of [0, 500, 1500, 3000]) {
+        if (delayMs) await sleep(delayMs);
+
+        if (responseId) {
+            try {
+                const detail = await getCase(responseId);
+                const detailCase = firstObjectFromPayload(detail, 'cases') || firstObjectFromPayload(detail, 'case');
+                if (detailCase && itemId(detailCase, '') === responseId) {
+                    return {
+                        case: detailCase,
+                        rows: upsertCaseRow(latestRows, detailCase)
+                    };
+                }
+            } catch (_error) {
+                // Some CMT backends expose the created case through the list endpoint before detail lookup.
+            }
+        }
+
+        const listResponse = await listCases({ archived: false, page: 1, page_size: 100, order: 'desc' });
+        latestRows = asArray(listResponse, 'cases');
+        const persistedCase = responseId
+            ? latestRows.find((item) => itemId(item, '') === responseId)
+            : latestRows.find((item) => caseMatchesPromotedAlert(item, alert, submittedAtMs));
+
+        if (persistedCase) {
+            return {
+                case: persistedCase,
+                rows: latestRows
+            };
+        }
+    }
+
+    return {
+        case: null,
+        rows: latestRows
+    };
+}
+
 function alertTitle(item) {
     return item?.title || item?.rule_description || item?.description || 'Untitled alert';
 }
 
 function linkedAlertIds(item) {
     const linked = item?.linked_alerts || item?.alerts || [item?.alert_id].filter(Boolean);
-    return linked
+    const ids = linked
         .map((alert) => (typeof alert === 'string' ? alert : alert?.source_alert_id || alert?.alert_id || alert?.id))
         .filter(Boolean);
+    return [...new Set(ids)];
 }
 
 function normalizeSeverity(value) {
@@ -488,10 +845,202 @@ function Toolbar({ search, setSearch, status, setStatus, severity, setSeverity }
     );
 }
 
-function CaseTable({ rows, selectedCaseId, busyCaseId, onOpen, onStatusChange, onEscalate, onArchive }) {
-    if (!rows.length) {
-        return <EmptyState title="No cases match the current filters" description="Adjust the filters or create a manual case from the quick action panel." />;
+const CONFIRM_VARIANT_STYLES = {
+    info: {
+        wrap: 'bg-blue-500/10 border-b border-blue-500/20',
+        icon: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+        Icon: Clock3
+    },
+    warning: {
+        wrap: 'bg-amber-500/10 border-b border-amber-500/20',
+        icon: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+        Icon: Zap
+    },
+    destructive: {
+        wrap: 'bg-destructive/10 border-b border-destructive/20',
+        icon: 'bg-destructive/15 text-destructive',
+        Icon: Archive
+    },
+    default: {
+        wrap: 'bg-muted/40 border-b',
+        icon: 'bg-muted text-foreground',
+        Icon: CheckCircle
     }
+};
+
+function CaseConfirmDialog({ open, onClose, title, description, confirmLabel, confirmVariant, onConfirm, children }) {
+    const style = CONFIRM_VARIANT_STYLES[confirmVariant] || CONFIRM_VARIANT_STYLES.default;
+    const VariantIcon = style.Icon;
+
+    return (
+        <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <DialogContent className="max-w-md overflow-hidden p-0" showClose={false}>
+                <div className={clsx('flex items-start gap-4 p-5', style.wrap)}>
+                    <div className={clsx('flex size-10 shrink-0 items-center justify-center rounded-full', style.icon)}>
+                        <VariantIcon className="size-5" />
+                    </div>
+                    <div className="flex-1 pt-0.5">
+                        <DialogTitle className="text-base leading-tight">{title}</DialogTitle>
+                        <DialogDescription className="mt-1 text-xs leading-relaxed">{description}</DialogDescription>
+                    </div>
+                    <button
+                        type="button"
+                        className="rounded-sm opacity-60 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                        onClick={onClose}
+                    >
+                        <X className="size-4" />
+                        <span className="sr-only">Close</span>
+                    </button>
+                </div>
+                {children && (
+                    <div className="px-5 pt-4">
+                        {children}
+                    </div>
+                )}
+                <DialogFooter className="px-5 pb-5 pt-4">
+                    <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+                    <Button type="button" size="sm" variant={confirmVariant || 'default'} onClick={() => { onConfirm(); onClose(); }}>
+                        <VariantIcon className="size-3.5" />
+                        {confirmLabel}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function CaseRowActionMenu({ item, busyCaseId, onOpen, onStatusChange, onEscalate, onArchive }) {
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [confirm, setConfirm] = useState(null);
+    const menuRef = useRef(null);
+    const id = itemId(item);
+    const busy = busyCaseId === id;
+
+    useEffect(() => {
+        if (!menuOpen) return undefined;
+        const handle = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) setMenuOpen(false);
+        };
+        document.addEventListener('mousedown', handle);
+        return () => document.removeEventListener('mousedown', handle);
+    }, [menuOpen]);
+
+    const run = (fn) => { fn(); setMenuOpen(false); };
+
+    const confirmConfigs = {
+        triage: {
+            title: 'Triage Case',
+            description: `Move "${caseTitle(item)}" to in-progress and begin investigation?`,
+            confirmLabel: 'Start Triage',
+            confirmVariant: 'info',
+            onConfirm: () => onStatusChange(id, 'in-progress')
+        },
+        escalate: {
+            title: item.escalated ? 'De-escalate Case' : 'Escalate Case',
+            description: item.escalated
+                ? `Remove the escalation flag from "${caseTitle(item)}"?`
+                : `Flag "${caseTitle(item)}" for management attention and higher priority?`,
+            confirmLabel: item.escalated ? 'De-escalate' : 'Escalate',
+            confirmVariant: 'warning',
+            onConfirm: () => onEscalate(id, !item.escalated)
+        },
+        archive: {
+            title: 'Archive Case',
+            description: `Archive "${caseTitle(item)}"? It will no longer appear in active queues.`,
+            confirmLabel: 'Archive',
+            confirmVariant: 'destructive',
+            onConfirm: () => onArchive(id, true)
+        }
+    };
+
+    const activeConfirm = confirm ? confirmConfigs[confirm] : null;
+
+    return (
+        <>
+            <div ref={menuRef} className="relative flex justify-end">
+                <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    title="Case actions"
+                    disabled={busy}
+                    onClick={() => setMenuOpen((v) => !v)}
+                >
+                    <MoreVertical className="size-4" />
+                </Button>
+                {menuOpen && (
+                    <div className="absolute right-0 top-11 z-40 w-52 overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg">
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => onOpen(id))}
+                        >
+                            Open case
+                        </button>
+                        <div className="my-1 h-px bg-border" />
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => setConfirm('triage'))}
+                        >
+                            Triage
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => setConfirm('escalate'))}
+                        >
+                            {item.escalated ? 'De-escalate' : 'Escalate'}
+                        </button>
+                        <div className="my-1 h-px bg-border" />
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
+                            onClick={() => run(() => setConfirm('archive'))}
+                        >
+                            Archive
+                        </button>
+                    </div>
+                )}
+            </div>
+            {activeConfirm && (
+                <CaseConfirmDialog
+                    open={Boolean(confirm)}
+                    onClose={() => setConfirm(null)}
+                    title={activeConfirm.title}
+                    description={activeConfirm.description}
+                    confirmLabel={activeConfirm.confirmLabel}
+                    confirmVariant={activeConfirm.confirmVariant}
+                    onConfirm={activeConfirm.onConfirm}
+                >
+                    <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+                        <p className="font-mono text-[11px] text-muted-foreground">{id}</p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                            <SeverityBadge severity={item.severity} />
+                            <StatusBadge status={item.status} />
+                            <SlaIndicator item={item} />
+                        </div>
+                    </div>
+                </CaseConfirmDialog>
+            )}
+        </>
+    );
+}
+
+const CASE_TABLE_PAGE_SIZE = 10;
+
+function CaseTable({ rows, selectedCaseId, busyCaseId, onOpen, onStatusChange, onEscalate, onArchive }) {
+    const [page, setPage] = useState(1);
+
+    useEffect(() => { setPage(1); }, [rows]);
+
+    if (!rows.length) {
+        return <EmptyState title="No cases match the current filters" description="Adjust the filters or use the Create Case action to open a manual case." />;
+    }
+
+    const totalPages = Math.ceil(rows.length / CASE_TABLE_PAGE_SIZE);
+    const start = (page - 1) * CASE_TABLE_PAGE_SIZE;
+    const pageRows = rows.slice(start, start + CASE_TABLE_PAGE_SIZE);
 
     return (
         <Card className="min-w-0 overflow-hidden">
@@ -504,11 +1053,11 @@ function CaseTable({ rows, selectedCaseId, busyCaseId, onOpen, onStatusChange, o
                         <TableHead>Owner</TableHead>
                         <TableHead>Customer</TableHead>
                         <TableHead>SLA</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                        <TableHead className="w-12" />
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {rows.map((item) => {
+                    {pageRows.map((item) => {
                         const id = itemId(item);
                         const isSelected = selectedCaseId === id;
                         return (
@@ -526,26 +1075,42 @@ function CaseTable({ rows, selectedCaseId, busyCaseId, onOpen, onStatusChange, o
                                 <TableCell className="max-w-[140px] truncate">{item.customer_code || 'n/a'}</TableCell>
                                 <TableCell><SlaIndicator item={item} /></TableCell>
                                 <TableCell>
-                                    <div className="flex flex-wrap justify-end gap-2">
-                                        <Button type="button" size="sm" variant="outline" disabled={busyCaseId === id} onClick={() => onOpen(id)}>
-                                            Open
-                                        </Button>
-                                        <Button type="button" size="sm" variant="infoOutline" disabled={busyCaseId === id} onClick={() => onStatusChange(id, 'in-progress')}>
-                                            Triage
-                                        </Button>
-                                        <Button type="button" size="sm" variant="warningOutline" disabled={busyCaseId === id} onClick={() => onEscalate(id, !item.escalated)}>
-                                            {item.escalated ? 'De-escalate' : 'Escalate'}
-                                        </Button>
-                                        <Button type="button" size="sm" variant="cancel" disabled={busyCaseId === id} onClick={() => onArchive(id, true)}>
-                                            Archive
-                                        </Button>
-                                    </div>
+                                    <CaseRowActionMenu
+                                        item={item}
+                                        busyCaseId={busyCaseId}
+                                        onOpen={onOpen}
+                                        onStatusChange={onStatusChange}
+                                        onEscalate={onEscalate}
+                                        onArchive={onArchive}
+                                    />
                                 </TableCell>
                             </TableRow>
                         );
                     })}
                 </TableBody>
             </Table>
+            <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-3">
+                <p className="text-sm text-muted-foreground">
+                    {start + 1}–{Math.min(start + CASE_TABLE_PAGE_SIZE, rows.length)} of <span className="font-semibold text-foreground">{rows.length}</span> cases
+                </p>
+                <div className="flex items-center gap-1">
+                    <Button type="button" variant="outline" size="icon" className="size-8" disabled={page === 1} onClick={() => setPage(1)} title="First page">
+                        <ChevronsLeft className="size-4" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" className="size-8" disabled={page === 1} onClick={() => setPage((p) => p - 1)} title="Previous page">
+                        <ChevronLeft className="size-4" />
+                    </Button>
+                    <span className="min-w-[90px] text-center text-sm text-muted-foreground">
+                        Page {page} of {totalPages}
+                    </span>
+                    <Button type="button" variant="outline" size="icon" className="size-8" disabled={page === totalPages} onClick={() => setPage((p) => p + 1)} title="Next page">
+                        <ChevronRight className="size-4" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon" className="size-8" disabled={page === totalPages} onClick={() => setPage(totalPages)} title="Last page">
+                        <ChevronsRight className="size-4" />
+                    </Button>
+                </div>
+            </div>
         </Card>
     );
 }
@@ -575,57 +1140,164 @@ function alertSortValue(item, sortBy) {
     return new Date(item.timestamp || item.received_at || 0).getTime() || 0;
 }
 
+function PromoteAlertDialog({ alert, open, onClose, onConfirm }) {
+    if (!alert) return null;
+    const id = alert.source_alert_id || alert.id || '';
+    const isAnomaly = alert.anomaly || alert.is_anomaly;
+
+    return (
+        <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Promote to Case</DialogTitle>
+                    <DialogDescription>
+                        A new CMT case will be created from this Wazuh alert and linked to it.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="rounded-lg border bg-muted/20 p-3">
+                    <p className="font-mono text-[11px] text-muted-foreground">{id}</p>
+                    <p className="mt-1 font-semibold text-foreground">{alertTitle(alert)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{alert.description || alert.rule_description || 'No description.'}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                        <SeverityBadge severity={alert.severity} />
+                        {isAnomaly && <Badge variant="warning" className="rounded-full">anomaly</Badge>}
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                    <Button type="button" variant="info" onClick={() => { onConfirm(); onClose(); }}>
+                        <TicketCheck className="size-4" />
+                        Promote to Case
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function AnomalyToggleDialog({ alert, open, onClose, onConfirm }) {
+    if (!alert) return null;
+    const isAnomaly = alert.anomaly || alert.is_anomaly;
+
+    return (
+        <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>{isAnomaly ? 'Clear Anomaly Flag' : 'Mark as Anomaly'}</DialogTitle>
+                    <DialogDescription>
+                        {isAnomaly
+                            ? 'Remove the anomaly flag. This alert will return to normal classification.'
+                            : 'Flag this alert as an anomaly. It will be highlighted for analyst review.'}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+                    <p className="font-mono text-[11px] text-muted-foreground">{alert.source_alert_id || alert.id}</p>
+                    <p className="mt-1 truncate font-semibold text-foreground">{alertTitle(alert)}</p>
+                    <div className="mt-2">
+                        <Badge variant={isAnomaly ? 'warning' : 'outline'} className="rounded-full">
+                            {isAnomaly ? 'Currently: anomaly' : 'Currently: normal'}
+                        </Badge>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                    <Button
+                        type="button"
+                        variant={isAnomaly ? 'outline' : 'warning'}
+                        onClick={() => { onConfirm(); onClose(); }}
+                    >
+                        {isAnomaly ? 'Clear Anomaly' : 'Mark as Anomaly'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function RowActionMenu({ item, onPromote, onToggleAnomaly, onOpenAction }) {
     const [open, setOpen] = useState(false);
+    const [promoteOpen, setPromoteOpen] = useState(false);
+    const [anomalyOpen, setAnomalyOpen] = useState(false);
     const menuRef = useRef(null);
 
     useEffect(() => {
         if (!open) return undefined;
-
-        const handlePointerDown = (event) => {
-            if (menuRef.current && !menuRef.current.contains(event.target)) {
-                setOpen(false);
-            }
+        const handle = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) setOpen(false);
         };
-
-        document.addEventListener('mousedown', handlePointerDown);
-        return () => document.removeEventListener('mousedown', handlePointerDown);
+        document.addEventListener('mousedown', handle);
+        return () => document.removeEventListener('mousedown', handle);
     }, [open]);
 
-    const run = (callback) => {
-        callback();
-        setOpen(false);
-    };
+    const run = (fn) => { fn(); setOpen(false); };
 
     return (
-        <div ref={menuRef} className="relative flex justify-end">
-            <Button type="button" size="icon" variant="ghost" title="Alert actions" onClick={() => setOpen((value) => !value)}>
-                <MoreVertical className="size-4" />
-            </Button>
-            {open && (
-                <div className="absolute right-0 top-11 z-40 w-56 overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground">
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onPromote(item))}>
-                        Promote to case
-                    </button>
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onToggleAnomaly(item))}>
-                        Toggle anomaly
-                    </button>
-                    <div className="my-1 h-px bg-border" />
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onOpenAction('label', item))}>
-                        Add label
-                    </button>
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onOpenAction('ioc', item))}>
-                        Add IOC
-                    </button>
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onOpenAction('asset', item))}>
-                        Add asset
-                    </button>
-                    <button type="button" className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted" onClick={() => run(() => onOpenAction('comment', item))}>
-                        Add comment
-                    </button>
-                </div>
-            )}
-        </div>
+        <>
+            <div ref={menuRef} className="relative flex justify-end">
+                <Button type="button" size="icon" variant="ghost" title="Alert actions" onClick={() => setOpen((v) => !v)}>
+                    <MoreVertical className="size-4" />
+                </Button>
+                {open && (
+                    <div className="absolute right-0 top-11 z-40 w-56 overflow-hidden rounded-xl border bg-popover p-1 text-popover-foreground shadow-lg">
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => setPromoteOpen(true))}
+                        >
+                            Promote to case
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => setAnomalyOpen(true))}
+                        >
+                            Toggle anomaly
+                        </button>
+                        <div className="my-1 h-px bg-border" />
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => onOpenAction('label', item))}
+                        >
+                            Add label
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => onOpenAction('ioc', item))}
+                        >
+                            Add IOC
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => onOpenAction('asset', item))}
+                        >
+                            Add asset
+                        </button>
+                        <button
+                            type="button"
+                            className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted"
+                            onClick={() => run(() => onOpenAction('comment', item))}
+                        >
+                            Add comment
+                        </button>
+                    </div>
+                )}
+            </div>
+            <PromoteAlertDialog
+                alert={item}
+                open={promoteOpen}
+                onClose={() => setPromoteOpen(false)}
+                onConfirm={() => onPromote(item)}
+            />
+            <AnomalyToggleDialog
+                alert={item}
+                open={anomalyOpen}
+                onClose={() => setAnomalyOpen(false)}
+                onConfirm={() => onToggleAnomaly(item)}
+            />
+        </>
     );
 }
 
@@ -781,7 +1453,7 @@ function AlertTable({
                 )}
             </CardHeader>
             <CardContent className="p-0">
-                <div className="hidden border-b bg-muted/10 px-4 py-3 xl:grid xl:grid-cols-[44px_minmax(520px,1fr)_170px_minmax(260px,0.55fr)_96px_56px] xl:items-center">
+                <div className="hidden border-b bg-muted/10 px-4 py-3 xl:grid xl:grid-cols-[44px_minmax(300px,0.9fr)_minmax(180px,0.55fr)_minmax(480px,1.15fr)_56px] xl:items-center">
                     <div>
                         <input
                             type="checkbox"
@@ -795,12 +1467,9 @@ function AlertTable({
                         Alert
                     </button>
                     <button type="button" className="text-left text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground" onClick={() => setSortBy('agent')}>
-                        Agent
+                        Agent / Status
                     </button>
                     <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Indicators</span>
-                    <button type="button" className="text-left text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground" onClick={() => setSortBy('severity')}>
-                        Status
-                    </button>
                     <span className="text-right text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Actions</span>
                 </div>
                 <div className="divide-y">
@@ -812,7 +1481,7 @@ function AlertTable({
                         const isSelected = selectedIds.includes(id);
                         return (
                             <div key={id} className={clsx(
-                                'grid gap-3 p-4 transition-colors hover:bg-muted/30 xl:grid-cols-[44px_minmax(520px,1fr)_170px_minmax(260px,0.55fr)_96px_56px] xl:items-center',
+                                'grid gap-3 p-3 transition-colors hover:bg-muted/30 xl:grid-cols-[44px_minmax(300px,0.9fr)_minmax(180px,0.55fr)_minmax(480px,1.15fr)_56px] xl:items-center',
                                 isSelected && 'bg-primary/5'
                             )}>
                                 <div className="flex items-center">
@@ -836,10 +1505,15 @@ function AlertTable({
 
                                 <div>
                                     <p className="mt-1 truncate font-semibold text-foreground">{item.agent || item.agent_name || 'unknown'}</p>
-                                    <div className="mt-2"><SeverityBadge severity={item.severity} /></div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        <SeverityBadge severity={item.severity} />
+                                        <Badge variant={item.anomaly || item.is_anomaly ? 'warning' : 'outline'} className="rounded-full">
+                                            {item.anomaly || item.is_anomaly ? 'anomaly' : 'normal'}
+                                        </Badge>
+                                    </div>
                                 </div>
 
-                                <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-1">
+                                <div className="grid gap-3 md:grid-cols-3">
                                     <div>
                                         <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">IOCs</p>
                                         <div className="mt-1 flex flex-wrap gap-1">
@@ -867,12 +1541,6 @@ function AlertTable({
                                             {!labels.length && <span className="text-xs text-muted-foreground">none</span>}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <Badge variant={item.anomaly || item.is_anomaly ? 'warning' : 'outline'} className="rounded-full">
-                                        {item.anomaly || item.is_anomaly ? 'anomaly' : 'normal'}
-                                    </Badge>
                                 </div>
 
                                 <RowActionMenu
@@ -1046,47 +1714,173 @@ function AlertActionDialog({ action, onOpenChange, onSubmit }) {
 }
 
 function ManualCasePanel({ value, onChange, onSubmit, disabled }) {
+    const [open, setOpen] = useState(false);
+    const [busy, setBusy] = useState(false);
+
+    const handleSubmit = async (event) => {
+        if (busy) {
+            event.preventDefault();
+            return;
+        }
+
+        setBusy(true);
+        try {
+            const created = await onSubmit(event);
+            if (created !== false) {
+                setOpen(false);
+            }
+        } finally {
+            setBusy(false);
+        }
+    };
+
     return (
-        <Card className="min-w-0">
-            <CardHeader>
-                <CardTitle className="text-base">Create Manual Case</CardTitle>
-                <CardDescription>For analyst-originated incidents without an initial Wazuh alert.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={onSubmit} className="flex flex-col gap-3">
-                    <Input
-                        value={value.title}
-                        onChange={(event) => onChange({ ...value, title: event.target.value })}
-                        placeholder="Case title"
-                        required
-                    />
-                    <Textarea
-                        value={value.description}
-                        onChange={(event) => onChange({ ...value, description: event.target.value })}
-                        placeholder="Investigation context"
-                        rows={3}
-                    />
-                    <div className="grid gap-3">
-                        <Select value={value.severity} onValueChange={(severity) => onChange({ ...value, severity })}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectGroup>
-                                    <SelectItem value="critical">Critical</SelectItem>
-                                    <SelectItem value="high">High</SelectItem>
-                                    <SelectItem value="medium">Medium</SelectItem>
-                                    <SelectItem value="low">Low</SelectItem>
-                                </SelectGroup>
-                            </SelectContent>
-                        </Select>
-                        <Input
-                            value={value.customer_code}
-                            onChange={(event) => onChange({ ...value, customer_code: event.target.value })}
-                            placeholder="Customer code"
-                        />
+        <>
+            <Card className="min-w-0">
+                <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                        <CardTitle className="text-base">Create Manual Case</CardTitle>
+                        <CardDescription className="mt-1">
+                            Open a case for analyst-originated incidents without an initial Wazuh alert.
+                        </CardDescription>
                     </div>
-                    <Button type="submit" className="w-full" disabled={disabled}>
+                    <Button type="button" className="shrink-0" onClick={() => setOpen(true)} disabled={disabled || busy}>
                         <Plus className="size-4" />
                         Create Case
+                    </Button>
+                </CardContent>
+            </Card>
+
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogContent className="max-w-2xl gap-0 p-0">
+                    <DialogHeader className="border-b bg-muted/20 p-6 pb-5">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg border bg-background p-2 text-primary">
+                                <TicketCheck className="size-5" />
+                            </div>
+                            <div>
+                                <DialogTitle>Create Manual Case</DialogTitle>
+                                <DialogDescription>
+                                    Capture enough context for triage, ownership, SLA tracking, and reporting.
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <form onSubmit={handleSubmit} className="grid gap-5 p-6">
+                        <div className="grid gap-2">
+                            <label className="text-sm font-semibold text-foreground" htmlFor="manual-case-title">Case title</label>
+                            <Input
+                                id="manual-case-title"
+                                value={value.title}
+                                onChange={(event) => onChange({ ...value, title: event.target.value })}
+                                placeholder="Example: Suspicious privileged login from external VPN"
+                                required
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="grid gap-2">
+                            <label className="text-sm font-semibold text-foreground" htmlFor="manual-case-description">Investigation context</label>
+                            <Textarea
+                                id="manual-case-description"
+                                value={value.description}
+                                onChange={(event) => onChange({ ...value, description: event.target.value })}
+                                placeholder="What happened, affected asset/user, initial evidence, and why this needs a case..."
+                                rows={5}
+                            />
+                        </div>
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <label className="text-sm font-semibold text-foreground">Severity</label>
+                                <Select value={value.severity} onValueChange={(severity) => onChange({ ...value, severity })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectGroup>
+                                            <SelectItem value="critical">Critical</SelectItem>
+                                            <SelectItem value="high">High</SelectItem>
+                                            <SelectItem value="medium">Medium</SelectItem>
+                                            <SelectItem value="low">Low</SelectItem>
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-sm font-semibold text-foreground" htmlFor="manual-case-customer">Customer code</label>
+                                <Input
+                                    id="manual-case-customer"
+                                    value={value.customer_code}
+                                    onChange={(event) => onChange({ ...value, customer_code: event.target.value })}
+                                    placeholder="acme, tenant-01, core-infra"
+                                />
+                            </div>
+                        </div>
+
+                        <Alert variant="info" className="bg-info/5">
+                            <ShieldCheck className="size-4" />
+                            <AlertTitle>Manual analyst action</AlertTitle>
+                            <AlertDescription>
+                                This creates a CMT case only. It does not execute endpoint response actions.
+                            </AlertDescription>
+                        </Alert>
+
+                        <DialogFooter className="border-t pt-5">
+                            <Button type="button" variant="cancel" onClick={() => setOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={disabled || busy || !value.title.trim()}>
+                                {disabled || busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                                Create Case
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+}
+
+function CmtLoginPanel({ value, onChange, onSubmit, busy, backendReady }) {
+    return (
+        <Card className="min-w-0 border-warning/40 bg-warning/5">
+            <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                    <div>
+                        <CardTitle>CMT Authentication Required</CardTitle>
+                        <CardDescription>
+                            Protected CMT routes require a CMT session. Login through `/auth/login` before loading cases and alerts.
+                        </CardDescription>
+                    </div>
+                    <Badge variant={backendReady ? 'warning' : 'secondary'}>{backendReady ? 'auth required' : 'session pending'}</Badge>
+                </div>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-foreground">Username</label>
+                        <Input
+                            value={value.username}
+                            onChange={(event) => onChange({ ...value, username: event.target.value })}
+                            placeholder="CMT / Wazuh username"
+                            autoComplete="username"
+                            required
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-foreground">Password</label>
+                        <Input
+                            value={value.password}
+                            onChange={(event) => onChange({ ...value, password: event.target.value })}
+                            type="password"
+                            placeholder="Password"
+                            autoComplete="current-password"
+                            required
+                        />
+                    </div>
+                    <Button type="submit" disabled={busy || !value.username.trim() || !value.password}>
+                        {busy ? <Loader2 className="size-4 animate-spin" /> : <Lock className="size-4" />}
+                        Login CMT
                     </Button>
                 </form>
             </CardContent>
@@ -1123,68 +1917,121 @@ function CaseWorkspace({
     onAssignOwner,
     onClose,
     onCreateNote,
+    onDeleteNote,
     onDownloadEvidence,
     onDownloadReport,
+    onFetchAlerts,
     onGenerateReport,
     onLinkAlert,
     onNotify,
     onStatusChange,
     onUnlinkAlert,
+    onUpdateNote,
     onUploadEvidence
 }) {
     const [owner, setOwner] = useState(caseItem?.owner || caseItem?.owner_id || '');
     const [noteBody, setNoteBody] = useState('');
+    const [editingNoteId, setEditingNoteId] = useState('');
+    const [editingNoteBody, setEditingNoteBody] = useState('');
     const [evidenceFile, setEvidenceFile] = useState(null);
-    const [linkAlertId, setLinkAlertId] = useState('');
     const [templateId, setTemplateId] = useState(templates[0]?.template_id || templates[0]?.id || '');
+
+    const [alertDropdownOpen, setAlertDropdownOpen] = useState(false);
+    const [alertSearch, setAlertSearch] = useState('');
+    const [availableAlerts, setAvailableAlerts] = useState([]);
+    const [alertsLoading, setAlertsLoading] = useState(false);
+    const alertDropdownRef = useRef(null);
 
     useEffect(() => {
         setOwner(caseItem?.owner || caseItem?.owner_id || '');
         setTemplateId(templates[0]?.template_id || templates[0]?.id || '');
     }, [caseItem, templates]);
 
+    useEffect(() => {
+        if (!alertDropdownOpen) return undefined;
+        const handle = (e) => {
+            if (alertDropdownRef.current && !alertDropdownRef.current.contains(e.target)) {
+                setAlertDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handle);
+        return () => document.removeEventListener('mousedown', handle);
+    }, [alertDropdownOpen]);
+
+    useEffect(() => {
+        if (!alertDropdownOpen || !onFetchAlerts) return undefined;
+        let cancelled = false;
+        setAlertsLoading(true);
+        onFetchAlerts(alertSearch).then((list) => {
+            if (!cancelled) { setAvailableAlerts(list); setAlertsLoading(false); }
+        }).catch(() => { if (!cancelled) setAlertsLoading(false); });
+        return () => { cancelled = true; };
+    }, [alertDropdownOpen, alertSearch, onFetchAlerts]);
+
     if (!caseItem) return null;
 
     const caseId = itemId(caseItem);
     const linkedAlerts = linkedAlertIds(caseItem);
 
+    const savedOwner = caseItem?.owner || caseItem?.owner_id || '';
+    const isDirty = owner.trim() !== savedOwner;
+
     return (
-        <Card className="min-w-0 overflow-hidden border-primary/30">
-            <CardHeader className="border-b bg-muted/20">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="font-mono">{caseId}</Badge>
-                            <SeverityBadge severity={caseItem.severity} />
-                            <StatusBadge status={caseItem.status} />
-                            <SlaIndicator item={caseItem} />
-                            {caseItem.escalated && <Badge variant="warning">escalated</Badge>}
-                        </div>
-                        <CardTitle className="mt-4 text-2xl">{caseTitle(caseItem)}</CardTitle>
-                        <CardDescription className="mt-2 max-w-4xl">{caseDescription(caseItem)}</CardDescription>
-                    </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={onClose} title="Close workspace">
-                        <X className="size-4" />
-                    </Button>
+        <div className="flex min-w-0 flex-col rounded-2xl border bg-card">
+            {/* Page header */}
+            <div className="flex flex-wrap items-center gap-3 border-b bg-muted/30 px-5 py-4">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                >
+                    <ArrowLeft className="size-4" />
+                    Back
+                </button>
+                <div className="h-5 w-px shrink-0 bg-border" />
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                    <Badge variant="outline" className="shrink-0 font-mono text-[11px]">{caseId}</Badge>
+                    <SeverityBadge severity={caseItem.severity} />
+                    <StatusBadge status={caseItem.status} />
+                    <SlaIndicator item={caseItem} />
+                    {caseItem.escalated && <Badge variant="warning">escalated</Badge>}
+                    <span className="truncate font-semibold text-foreground">{caseTitle(caseItem)}</span>
                 </div>
-            </CardHeader>
-            <CardContent className="p-0">
-                <div className="grid min-h-[520px] min-w-0 xl:grid-cols-[minmax(0,1fr)_320px]">
-                    <div className="min-w-0 border-r">
-                        <div className="flex flex-wrap gap-2 border-b bg-background p-3">
-                            {CASE_TABS.map((tab) => (
-                                <Button
-                                    key={tab}
-                                    type="button"
-                                    variant={activeTab === tab ? 'default' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setActiveTab(tab)}
-                                    className="capitalize"
-                                >
-                                    {tab.replace('-', ' ')}
-                                </Button>
-                            ))}
-                        </div>
+                <Button
+                    type="button"
+                    size="sm"
+                    disabled={!isDirty}
+                    onClick={() => onAssignOwner(caseId, owner)}
+                    className="shrink-0 gap-2"
+                >
+                    <Save className="size-4" />
+                    Save Changes
+                </Button>
+            </div>
+
+            {/* Case title / description */}
+            <div className="border-b px-5 py-4">
+                <h2 className="text-xl font-bold text-foreground">{caseTitle(caseItem)}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{caseDescription(caseItem)}</p>
+            </div>
+
+            {/* Main content */}
+            <div className="grid min-w-0 xl:grid-cols-[minmax(0,1fr)_300px]">
+                <div className="min-w-0 border-r">
+                    <div className="flex flex-wrap gap-2 border-b bg-background p-3">
+                        {CASE_TABS.map((tab) => (
+                            <Button
+                                key={tab}
+                                type="button"
+                                variant={activeTab === tab ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={() => setActiveTab(tab)}
+                                className="capitalize"
+                            >
+                                {tab.replace('-', ' ')}
+                            </Button>
+                        ))}
+                    </div>
                         <div className="p-5">
                             {activeTab === 'overview' && (
                                 <div className="grid gap-4 md:grid-cols-2">
@@ -1197,23 +2044,81 @@ function CaseWorkspace({
 
                             {activeTab === 'linked-alerts' && (
                                 <div className="flex flex-col gap-3">
-                                    <div className="grid gap-3 rounded-lg border bg-muted/20 p-4 md:grid-cols-[1fr_auto]">
-                                        <Input
-                                            value={linkAlertId}
-                                            onChange={(event) => setLinkAlertId(event.target.value)}
-                                            placeholder="Wazuh source_alert_id to link"
-                                        />
-                                        <Button
-                                            type="button"
-                                            disabled={!linkAlertId.trim()}
-                                            onClick={() => {
-                                                onLinkAlert(caseId, linkAlertId.trim());
-                                                setLinkAlertId('');
-                                            }}
-                                        >
-                                            <Link2 className="size-4" />
-                                            Link Alert
-                                        </Button>
+                                    <div className="rounded-lg border bg-muted/20 p-4">
+                                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Search CMT alerts to link</p>
+                                        <div ref={alertDropdownRef} className="relative">
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={alertSearch}
+                                                    onChange={(e) => { setAlertSearch(e.target.value); setAlertDropdownOpen(true); }}
+                                                    onFocus={() => setAlertDropdownOpen(true)}
+                                                    placeholder="Search by ID, rule, or description…"
+                                                    className="flex-1"
+                                                />
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={() => setAlertDropdownOpen((v) => !v)}
+                                                    title="Browse alerts"
+                                                >
+                                                    {alertsLoading
+                                                        ? <Loader2 className="size-4 animate-spin" />
+                                                        : <ChevronDown className="size-4" />}
+                                                </Button>
+                                            </div>
+                                            {alertDropdownOpen && (
+                                                <div className="absolute left-0 right-0 top-11 z-50 max-h-64 overflow-y-auto rounded-xl border bg-popover shadow-lg">
+                                                    {alertsLoading && (
+                                                        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+                                                            <Loader2 className="size-4 animate-spin" />
+                                                            Loading alerts…
+                                                        </div>
+                                                    )}
+                                                    {!alertsLoading && !availableAlerts.length && (
+                                                        <div className="py-6 text-center text-sm text-muted-foreground">
+                                                            No alerts found
+                                                        </div>
+                                                    )}
+                                                    {availableAlerts.map((alert) => {
+                                                        const aId = alert.source_alert_id || alert.id;
+                                                        const already = linkedAlerts.includes(aId);
+                                                        return (
+                                                            <button
+                                                                key={aId}
+                                                                type="button"
+                                                                disabled={already}
+                                                                className={clsx(
+                                                                    'flex w-full flex-col gap-1 border-b px-4 py-3 text-left last:border-b-0 hover:bg-muted',
+                                                                    already && 'cursor-not-allowed opacity-50'
+                                                                )}
+                                                                onClick={() => {
+                                                                    if (!already) {
+                                                                        onLinkAlert(caseId, aId, alert);
+                                                                        setAlertDropdownOpen(false);
+                                                                        setAlertSearch('');
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <SeverityBadge severity={alert.severity} />
+                                                                    <span className="font-mono text-[11px] text-muted-foreground">{aId}</span>
+                                                                    {already && (
+                                                                        <Badge variant="outline" className="text-[10px]">Linked</Badge>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-sm font-medium leading-tight">
+                                                                    {alert.rule_description || alert.description || aId}
+                                                                </div>
+                                                                {alert.agent_name && (
+                                                                    <div className="text-xs text-muted-foreground">Agent: {alert.agent_name}</div>
+                                                                )}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     {linkedAlerts.map((alertId) => (
                                         <div key={alertId} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3">
@@ -1224,7 +2129,7 @@ function CaseWorkspace({
                                             <Button type="button" size="sm" variant="cancel" onClick={() => onUnlinkAlert(caseId, alertId)}>Unlink</Button>
                                         </div>
                                     ))}
-                                    {!linkedAlerts.length && <EmptyState icon={Link2} title="No linked alerts" description="Use bulk link from the alert triage queue when the backend is available." />}
+                                    {!linkedAlerts.length && <EmptyState icon={Link2} title="No linked alerts" description="Search and select an alert above to link it to this case." />}
                                 </div>
                             )}
 
@@ -1245,9 +2150,46 @@ function CaseWorkspace({
                                             <div key={itemId(note)} className="rounded-lg border bg-card p-4">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="text-sm font-semibold">{note.author || note.created_by || 'analyst'}</div>
-                                                    <div className="text-xs text-muted-foreground">{formatDateTime(note.created_at)}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="text-xs text-muted-foreground">{formatDateTime(note.created_at)}</div>
+                                                        <Button
+                                                            type="button"
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            onClick={() => {
+                                                                setEditingNoteId(itemId(note));
+                                                                setEditingNoteBody(note.body || '');
+                                                            }}
+                                                        >
+                                                            Edit
+                                                        </Button>
+                                                        <Button type="button" size="sm" variant="ghost" onClick={() => onDeleteNote(caseId, itemId(note))}>
+                                                            Delete
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <p className="mt-2 text-sm text-muted-foreground">{note.body}</p>
+                                                {editingNoteId === itemId(note) ? (
+                                                    <div className="mt-3 flex flex-col gap-2">
+                                                        <Textarea value={editingNoteBody} onChange={(event) => setEditingNoteBody(event.target.value)} rows={3} />
+                                                        <div className="flex justify-end gap-2">
+                                                            <Button type="button" variant="cancel" size="sm" onClick={() => setEditingNoteId('')}>Cancel</Button>
+                                                            <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                disabled={!editingNoteBody.trim()}
+                                                                onClick={() => {
+                                                                    onUpdateNote(caseId, itemId(note), editingNoteBody);
+                                                                    setEditingNoteId('');
+                                                                    setEditingNoteBody('');
+                                                                }}
+                                                            >
+                                                                Save Note
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <p className="mt-2 text-sm text-muted-foreground">{note.body}</p>
+                                                )}
                                             </div>
                                         ))}
                                         {!notes.length && <EmptyState icon={MessageSquare} title="No notes yet" description="Add the first analyst note for this case." />}
@@ -1298,7 +2240,10 @@ function CaseWorkspace({
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectGroup>
-                                                    {templates.map((template) => (
+                                                    {templates.filter((t) => {
+                                                        const tid = t.template_id || t.id || '';
+                                                        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tid);
+                                                    }).map((template) => (
                                                         <SelectItem key={template.template_id || template.id} value={template.template_id || template.id}>
                                                             {template.name}
                                                         </SelectItem>
@@ -1312,8 +2257,8 @@ function CaseWorkspace({
                                         </Button>
                                     </div>
                                     <div className="flex flex-col gap-3">
-                                        {reports.map((report) => (
-                                            <div key={itemId(report)} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4">
+                                        {reports.map((report, idx) => (
+                                            <div key={report.report_id || report.id || `report-${idx}`} className="flex items-center justify-between gap-3 rounded-lg border bg-card p-4">
                                                 <div>
                                                     <div className="font-semibold">{report.template_id || report.name || 'Case report'}</div>
                                                     <div className="text-xs text-muted-foreground">{report.format || 'pdf'} - {formatDateTime(report.created_at)}</div>
@@ -1330,33 +2275,41 @@ function CaseWorkspace({
                             )}
                         </div>
                     </div>
-                    <div className="flex flex-col gap-4 bg-muted/20 p-5">
+                    <div className="flex flex-col gap-5 bg-muted/20 p-5">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Metadata</p>
                             <div className="mt-3 grid gap-3 text-sm">
-                                <div className="flex justify-between gap-3"><span className="text-muted-foreground">Owner</span><span className="font-semibold">{caseItem.owner || caseItem.owner_id || 'unassigned'}</span></div>
                                 <div className="flex justify-between gap-3"><span className="text-muted-foreground">Customer</span><span className="font-semibold">{caseItem.customer_code || 'n/a'}</span></div>
                                 <div className="flex justify-between gap-3"><span className="text-muted-foreground">Created</span><span className="font-semibold">{formatDateTime(caseItem.created_at)}</span></div>
                                 <div className="flex justify-between gap-3"><span className="text-muted-foreground">Updated</span><span className="font-semibold">{formatDateTime(caseItem.updated_at)}</span></div>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
-                            <Input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Assign owner" />
-                            <Button type="button" variant="outline" onClick={() => onAssignOwner(caseId, owner)} disabled={!owner.trim()}>
-                                <UserCog className="size-4" />
-                                Assign Owner
-                            </Button>
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Owner</p>
+                            <Input
+                                value={owner}
+                                onChange={(event) => setOwner(event.target.value)}
+                                placeholder="Assign owner"
+                            />
+                            {isDirty && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">Unsaved — click Save Changes</p>
+                            )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                            <Button type="button" variant="infoOutline" onClick={() => onStatusChange(caseId, 'in-progress')}>Triage</Button>
-                            <Button type="button" variant="successOutline" onClick={() => onStatusChange(caseId, 'resolved')}>Resolve</Button>
-                            <Button type="button" variant="warningOutline" onClick={() => onNotify(caseId)}>Notify</Button>
-                            <Button type="button" variant="cancel" onClick={() => onClose()}>Close</Button>
+                        <div className="flex flex-col gap-2">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Actions</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button type="button" variant="infoOutline" size="sm" onClick={() => onStatusChange(caseId, 'in-progress')}>Triage</Button>
+                                <Button type="button" variant="successOutline" size="sm" onClick={() => onStatusChange(caseId, 'resolved')}>Resolve</Button>
+                                <Button type="button" variant="warningOutline" size="sm" onClick={() => onNotify(caseId)}>Notify</Button>
+                                <Button type="button" variant="outline" size="sm" onClick={() => onClose()}>
+                                    <ArrowLeft className="size-3.5" />
+                                    Back
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
@@ -1370,7 +2323,7 @@ function ReportsPage({
     onGenerateReport,
     onPreviewTemplate
 }) {
-    const [draft, setDraft] = useState({ template_id: '', name: '', format: 'pdf', renderer: 'default', body: '' });
+    const [draft, setDraft] = useState({ name: '', format: 'pdf', renderer: 'react_pdf', body: '' });
     const [preview, setPreview] = useState('');
 
     return (
@@ -1444,7 +2397,7 @@ function ReportsPage({
                             </SelectGroup>
                         </SelectContent>
                     </Select>
-                    {templates.map((template) => (
+                    {templates.filter((t) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(t.template_id || t.id || '')).map((template) => (
                         <Button key={template.template_id || template.id} type="button" variant="outline" disabled={!selectedCaseId} onClick={() => onGenerateReport(selectedCaseId, template.template_id || template.id)}>
                             <FileText className="size-4" />
                             Generate {template.name}
@@ -1459,14 +2412,14 @@ function ReportsPage({
                 </CardHeader>
                 <CardContent>
                     <form
-                        className="grid gap-4 xl:grid-cols-[minmax(160px,260px)_140px_minmax(140px,180px)_minmax(220px,1fr)_auto]"
+                        className="grid gap-4 xl:grid-cols-[minmax(220px,1fr)_130px_150px_auto]"
                         onSubmit={(event) => {
                             event.preventDefault();
                             onCreateTemplate(draft);
-                            setDraft({ template_id: '', name: '', format: 'pdf', renderer: 'default', body: '' });
+                            setDraft({ name: '', format: 'pdf', renderer: 'react_pdf', body: '' });
                         }}
                     >
-                        <Input value={draft.template_id} onChange={(event) => setDraft({ ...draft, template_id: event.target.value })} placeholder="template_id" />
+                        <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Template name" required />
                         <Select value={draft.format} onValueChange={(format) => setDraft({ ...draft, format })}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
@@ -1476,21 +2429,31 @@ function ReportsPage({
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
-                        <Input value={draft.renderer} onChange={(event) => setDraft({ ...draft, renderer: event.target.value })} placeholder="renderer" />
-                        <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} placeholder="Template name" required />
+                        <Select value={draft.renderer} onValueChange={(renderer) => setDraft({ ...draft, renderer })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    <SelectItem value="react_pdf">React PDF</SelectItem>
+                                    <SelectItem value="builtin">Built-in</SelectItem>
+                                    <SelectItem value="docx">DOCX</SelectItem>
+                                    <SelectItem value="latex">LaTeX</SelectItem>
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
                         <div className="flex gap-2">
                             <Button type="button" variant="outline" onClick={async () => setPreview(await onPreviewTemplate(draft))}>Preview</Button>
                             <Button type="submit">Save</Button>
                         </div>
                         <Textarea
-                            className="xl:col-span-5"
+                            className="xl:col-span-4"
                             value={draft.body}
                             onChange={(event) => setDraft({ ...draft, body: event.target.value })}
-                            placeholder="Template body or renderer configuration"
+                            placeholder="Template body — required. Describe the report structure or paste a Markdown/HTML template."
                             rows={4}
+                            required
                         />
                         {preview && (
-                            <div className="rounded-lg border bg-muted/20 p-4 text-sm xl:col-span-5">
+                            <div className="rounded-lg border bg-muted/20 p-4 text-sm xl:col-span-4">
                                 <div className="mb-2 font-semibold">Preview</div>
                                 <pre className="whitespace-pre-wrap text-muted-foreground">{preview}</pre>
                             </div>
@@ -1676,15 +2639,173 @@ function WebhooksPage({ currentUser, webhooks, onUpdateWebhook }) {
     );
 }
 
+function AgentsPage() {
+    const [summary, setSummary] = useState(null);
+    const [versions, setVersions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    const load = useCallback(async () => {
+        try {
+            const [sumRes, verRes] = await Promise.allSettled([
+                getAgentDashboardSummary(),
+                listAgentVersions()
+            ]);
+            setSummary(sumRes.status === 'fulfilled' ? sumRes.value : null);
+            setVersions(verRes.status === 'fulfilled' ? asArray(verRes.value, 'versions') : []);
+            if (sumRes.status === 'rejected' && verRes.status === 'rejected') {
+                setError(sumRes.reason || verRes.reason);
+            } else {
+                setError(null);
+            }
+        } catch (err) {
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        load();
+        const interval = setInterval(load, 30000);
+        return () => clearInterval(interval);
+    }, [load]);
+
+    const totalAgents = summary?.total ?? summary?.total_agents ?? summary?.agent_count ?? null;
+    const activeAgents = summary?.active ?? summary?.active_agents ?? summary?.online ?? null;
+    const inactiveAgents = summary?.inactive ?? summary?.inactive_agents ?? summary?.offline ?? null;
+    const latestVersion = summary?.latest_version ?? summary?.version ?? summary?.latestVersion ?? null;
+
+    if (loading) {
+        return (
+            <div className="flex items-center gap-3 p-6 text-muted-foreground">
+                <Loader2 className="size-5 animate-spin" />
+                Loading agent dashboard…
+            </div>
+        );
+    }
+
+    if (error && !summary) {
+        return (
+            <Alert variant="warning">
+                <ShieldAlert className="size-4" />
+                <AlertTitle>Agent data unavailable</AlertTitle>
+                <AlertDescription>
+                    {error?.message || 'Could not reach the agent dashboard endpoint. Check that the CMT backend is running and the /api/v1/agents proxy is configured.'}
+                </AlertDescription>
+            </Alert>
+        );
+    }
+
+    const summaryStats = [
+        { label: 'Total agents', value: totalAgents ?? '—', icon: Activity },
+        { label: 'Active', value: activeAgents ?? '—', icon: ShieldCheck },
+        { label: 'Inactive', value: inactiveAgents ?? '—', icon: AlertTriangle },
+        { label: 'Latest version', value: latestVersion ?? '—', icon: Zap }
+    ];
+
+    return (
+        <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {summaryStats.map(({ label, value, icon: Icon }) => (
+                    <Card key={label}>
+                        <CardContent className="flex items-start justify-between gap-4 p-5">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+                                <p className="mt-2 text-3xl font-black tracking-tight">{String(value)}</p>
+                            </div>
+                            <div className="flex size-10 items-center justify-center rounded-xl border bg-muted text-muted-foreground">
+                                <Icon className="size-4" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+
+            <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>Agent Version Distribution</CardTitle>
+                        <CardDescription>Wazuh agent versions currently reporting to the CMT backend.</CardDescription>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={load}>
+                        <RefreshCw className="size-4" />
+                        Refresh
+                    </Button>
+                </CardHeader>
+                <CardContent>
+                    {versions.length === 0 ? (
+                        <p className="py-6 text-center text-sm text-muted-foreground">No version data returned from the backend.</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Version</TableHead>
+                                    <TableHead>Agent count</TableHead>
+                                    <TableHead>Latest release</TableHead>
+                                    <TableHead>OS</TableHead>
+                                    <TableHead className="text-right">Share</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {versions.map((v, idx) => {
+                                    const ver = v?.version ?? v?.agent_version ?? v?.ver ?? `v${idx + 1}`;
+                                    const count = v?.count ?? v?.agent_count ?? v?.total ?? 0;
+                                    const isLatest = v?.latest === true || v?.is_latest === true || v?.latest_version === true;
+                                    const os = v?.os ?? v?.platform ?? '—';
+                                    const share = totalAgents ? Math.round((count / totalAgents) * 100) : null;
+                                    return (
+                                        <TableRow key={ver}>
+                                            <TableCell className="font-mono font-bold">{ver}</TableCell>
+                                            <TableCell className="font-semibold">{count}</TableCell>
+                                            <TableCell>
+                                                {isLatest
+                                                    ? <span className="rounded-md bg-success/15 px-2 py-0.5 text-xs font-bold text-success">Latest</span>
+                                                    : <span className="text-muted-foreground">—</span>}
+                                            </TableCell>
+                                            <TableCell className="text-muted-foreground">{os}</TableCell>
+                                            <TableCell className="text-right font-semibold text-muted-foreground">
+                                                {share != null ? `${share}%` : '—'}
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+
+            {summary && Object.keys(summary).length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Raw Summary</CardTitle>
+                        <CardDescription>Full JSON payload from <code>/api/v1/agents/dashboard/summary</code>.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs font-mono leading-5">
+                            {JSON.stringify(summary, null, 2)}
+                        </pre>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}
+
 export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const [liveMode, setLiveMode] = useState(CMT_AUTO_CONNECT);
     const [backendReady, setBackendReady] = useState(false);
     const [loading, setLoading] = useState(CMT_AUTO_CONNECT);
     const [message, setMessage] = useState('');
+    const [authRequired, setAuthRequired] = useState(false);
+    const [cmtAuthenticated, setCmtAuthenticated] = useState(false);
+    const [loginBusy, setLoginBusy] = useState(false);
+    const [loginDraft, setLoginDraft] = useState({ username: '', password: '' });
     const [user, setUser] = useState(CMT_AUTO_CONNECT ? null : demoUser);
     const [cases, setCases] = useState(CMT_AUTO_CONNECT ? [] : demoCases);
     const [slaCases, setSlaCases] = useState(CMT_AUTO_CONNECT ? [] : demoCases.filter(isSlaBreached));
-    const [alerts, setAlerts] = useState(CMT_AUTO_CONNECT ? [] : demoAlerts);
+    const [alerts, setAlerts] = useState(CMT_AUTO_CONNECT ? [] : mergeAlertAnnotations(demoAlerts));
     const [templates, setTemplates] = useState(CMT_AUTO_CONNECT ? [] : demoTemplates);
     const [users, setUsers] = useState(CMT_AUTO_CONNECT ? [] : demoUsers);
     const [webhooks, setWebhooks] = useState(CMT_AUTO_CONNECT ? [] : demoWebhooks);
@@ -1703,8 +2824,45 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const [manualCase, setManualCase] = useState({ title: '', description: '', severity: 'high', customer_code: '' });
     const [alertAction, setAlertAction] = useState({ open: false, type: 'label', alert: null });
 
-    const load = useCallback(async () => {
-        if (!liveMode) {
+    const clearProtectedCmtData = useCallback(() => {
+        setUser(null);
+        setCases([]);
+        setSlaCases([]);
+        setAlerts([]);
+        setTemplates([]);
+        setUsers([]);
+        setWebhooks([]);
+    }, []);
+
+    const requireCmtAuthentication = useCallback(async () => {
+        if (!liveMode) return true;
+        if (cmtAuthenticated) return true;
+
+        try {
+            const currentUser = await ensureCmtSession();
+            setUser(currentUser || demoUser);
+            setBackendReady(true);
+            setAuthRequired(false);
+            setCmtAuthenticated(true);
+            return true;
+        } catch (error) {
+            setBackendReady(true);
+            setAuthRequired(true);
+            setCmtAuthenticated(false);
+            setStreamStatus('auth required');
+            setMessage(isCmtUnauthorized(error)
+                ? 'CMT login is required before creating database cases. Enter CMT credentials, then retry Create Case.'
+                : error.message || 'CMT authentication could not be established.');
+            return false;
+        }
+    }, [cmtAuthenticated, liveMode]);
+
+    const load = useCallback(async (options = {}) => {
+        const shouldUseLive = options.liveMode ?? liveMode;
+        let authenticated = options.authenticated ?? cmtAuthenticated;
+        let resolvedUser = options.user || null;
+
+        if (!shouldUseLive) {
             setBackendReady(false);
             setLoading(false);
             return;
@@ -1715,10 +2873,31 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         setBackendReady(false);
 
         try {
-            await getCmtHealth();
-            const currentUser = await ensureCmtSession();
-            setUser(currentUser || demoUser);
-            setBackendReady(true);
+            if (!authenticated) {
+                try {
+                    resolvedUser = await ensureCmtSession();
+                    authenticated = true;
+                    setUser(resolvedUser || demoUser);
+                    setAuthRequired(false);
+                    setCmtAuthenticated(true);
+                } catch (error) {
+                    setBackendReady(true);
+                    setAuthRequired(true);
+                    setCmtAuthenticated(false);
+                    clearProtectedCmtData();
+                    setStreamStatus('auth required');
+                    setMessage(isCmtUnauthorized(error)
+                        ? 'Login to CMT before loading protected cases, alerts, and live stream data.'
+                        : error.message || 'CMT authentication could not be established.');
+                    return;
+                }
+            }
+
+            if (options.user) {
+                setUser(options.user);
+            } else if (resolvedUser) {
+                setUser(resolvedUser);
+            }
 
             const [caseResult, slaResult, alertResult, templateResult, userResult, webhookResult] = await Promise.allSettled([
                 listCases({ archived: false, page: 1, page_size: 50 }),
@@ -1731,37 +2910,69 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
             if (caseResult.status === 'fulfilled') setCases(asArray(caseResult.value, 'cases'));
             if (slaResult.status === 'fulfilled') setSlaCases(asArray(slaResult.value, 'cases'));
-            if (alertResult.status === 'fulfilled') setAlerts(asArray(alertResult.value, 'alerts'));
+            if (alertResult.status === 'fulfilled') setAlerts(mergeAlertAnnotations(asArray(alertResult.value, 'alerts')));
             if (templateResult.status === 'fulfilled') setTemplates(asArray(templateResult.value, 'templates'));
             if (userResult.status === 'fulfilled') setUsers(asArray(userResult.value, 'users'));
             if (webhookResult.status === 'fulfilled') setWebhooks(asArray(webhookResult.value, 'webhooks'));
 
-            const rejected = [caseResult, slaResult, alertResult, templateResult, userResult, webhookResult].find((item) => item.status === 'rejected');
-            if (rejected) setMessage(rejected.reason?.message || 'Some CMT data could not be loaded.');
+            const allResults = [caseResult, slaResult, alertResult, templateResult, userResult, webhookResult];
+            const anyUnauthorized = allResults.find((r) => r.status === 'rejected' && isCmtUnauthorized(r.reason));
+            const criticalRejected = [caseResult, slaResult, alertResult].find((r) => r.status === 'rejected');
+
+            if (anyUnauthorized) {
+                setBackendReady(true);
+                setAuthRequired(true);
+                setCmtAuthenticated(false);
+                clearProtectedCmtData();
+                setStreamStatus('auth required');
+                setMessage('CMT login is required before protected case and alert data can be loaded.');
+            } else if (criticalRejected) {
+                setBackendReady(true);
+                setAuthRequired(false);
+                setCmtAuthenticated(true);
+                setMessage(criticalRejected.reason?.message || 'Some CMT data could not be loaded.');
+            } else {
+                setBackendReady(true);
+                setAuthRequired(false);
+                setCmtAuthenticated(true);
+            }
         } catch (error) {
-            setLiveMode(false);
-            setBackendReady(false);
-            setUser(null);
-            setCases([]);
-            setSlaCases([]);
-            setAlerts([]);
-            setTemplates([]);
-            setUsers([]);
-            setWebhooks([]);
+            const unauthorized = isCmtUnauthorized(error);
+            if (!unauthorized) {
+                setLiveMode(false);
+            }
+            setBackendReady(unauthorized);
+            setAuthRequired(unauthorized);
+            setCmtAuthenticated(false);
+            clearProtectedCmtData();
             setStreamStatus('standby');
-            setMessage(error.message || 'CMT backend is not reachable. Please check your connection.');
+            setMessage(unauthorized
+                ? 'CMT login is required. Enter CMT credentials to create a session before loading cases and alerts.'
+                : error.message || 'CMT backend is not reachable. Please check your connection.');
         } finally {
             setLoading(false);
         }
-    }, [liveMode]);
+    }, [clearProtectedCmtData, cmtAuthenticated, liveMode]);
 
     useEffect(() => {
         load();
     }, [load]);
 
     useEffect(() => {
-        if (!liveMode || !backendReady || !CMT_ENABLE_SSE) {
-            setStreamStatus(liveMode && backendReady && !CMT_ENABLE_SSE ? 'disabled' : liveMode ? 'checking' : 'standby');
+        setSelectedCase(null);
+        setSelectedCaseId('');
+        sessionStorage.removeItem('cmt_open_case_id');
+    }, [view]);
+
+    useEffect(() => {
+        if (!backendReady || !cmtAuthenticated) return;
+        const savedId = sessionStorage.getItem('cmt_open_case_id');
+        if (savedId) loadCaseWorkspace(savedId, true);
+    }, [backendReady, cmtAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        if (!liveMode || !backendReady || !cmtAuthenticated || authRequired || !user || !CMT_ENABLE_SSE) {
+            setStreamStatus(liveMode && backendReady && !CMT_ENABLE_SSE ? 'disabled' : authRequired ? 'auth required' : liveMode ? 'checking' : 'standby');
             return undefined;
         }
 
@@ -1770,8 +2981,9 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         eventSource.onopen = () => setStreamStatus('connected');
         eventSource.addEventListener('alert', (event) => {
             try {
-                const incoming = JSON.parse(event.data);
-                setAlerts((current) => [incoming, ...current.filter((item) => item.source_alert_id !== incoming.source_alert_id)].slice(0, 100));
+                const incoming = mergeAlertAnnotations([JSON.parse(event.data)])[0];
+                const incomingId = alertAnnotationId(incoming);
+                setAlerts((current) => [incoming, ...current.filter((item) => alertAnnotationId(item) !== incomingId)].slice(0, 100));
             } catch (_error) {
                 setMessage('Received an unreadable live alert event.');
             }
@@ -1781,19 +2993,24 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
             setStreamStatus('disconnected');
         };
         return () => eventSource.close();
-    }, [backendReady, liveMode]);
+    }, [authRequired, backendReady, cmtAuthenticated, liveMode, user]);
 
-    const loadCaseWorkspace = useCallback(async (caseId) => {
+    const loadCaseWorkspace = useCallback(async (caseId, keepTab = false) => {
+        sessionStorage.setItem('cmt_open_case_id', caseId);
         const fallback = cases.find((item) => itemId(item) === caseId) || null;
         setSelectedCaseId(caseId);
         setSelectedCase(fallback);
-        setActiveCaseTab('overview');
+        if (!keepTab) setActiveCaseTab('overview');
 
         if (!liveMode) {
             setCaseNotes(demoNotes);
             setCaseEvidence(demoEvidence);
             setCaseAudit(demoAudit);
             setCaseReports(demoReports);
+            return;
+        }
+
+        if (!(await requireCmtAuthentication())) {
             return;
         }
 
@@ -1810,11 +3027,19 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
             if (notes.status === 'fulfilled') setCaseNotes(asArray(notes.value, 'notes'));
             if (evidence.status === 'fulfilled') setCaseEvidence(asArray(evidence.value, 'evidence'));
             if (audit.status === 'fulfilled') setCaseAudit(asArray(audit.value, 'events'));
-            if (reports.status === 'fulfilled') setCaseReports(asArray(reports.value, 'reports'));
+            if (reports.status === 'fulfilled') {
+                const seen = new Set();
+                setCaseReports(asArray(reports.value, 'reports').filter((r) => {
+                    const k = r.report_id || r.id;
+                    if (!k || seen.has(k)) return false;
+                    seen.add(k);
+                    return true;
+                }));
+            }
         } catch (error) {
             setMessage(error.message || 'Failed to load case workspace.');
         }
-    }, [cases, liveMode]);
+    }, [cases, liveMode, requireCmtAuthentication]);
 
     const stats = useMemo(() => {
         const openCases = cases.filter((item) => !['closed', 'resolved'].includes(normalizeStatus(item.status)));
@@ -1881,7 +3106,36 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
     const handleConnectLive = () => {
         setBackendReady(false);
+        setAuthRequired(false);
         setLiveMode(true);
+    };
+
+    const handleCmtLogin = async (event) => {
+        event.preventDefault();
+        setLoginBusy(true);
+        setMessage('');
+        setBackendReady(false);
+
+        try {
+            await loginCmt(loginDraft);
+            const currentUser = await getCurrentCmtUser();
+            const resolvedUser = currentUser || demoUser;
+            setUser(resolvedUser);
+            setAuthRequired(false);
+            setCmtAuthenticated(true);
+            setLiveMode(true);
+            setLoginDraft((current) => ({ ...current, password: '' }));
+            setMessage('CMT session established. Loading protected case and alert data.');
+            await load({ authenticated: true, liveMode: true, user: resolvedUser });
+        } catch (error) {
+            setAuthRequired(true);
+            setCmtAuthenticated(false);
+            clearProtectedCmtData();
+            setStreamStatus('auth required');
+            setMessage(error.message || 'CMT login failed. Check username, password, and backend auth configuration.');
+        } finally {
+            setLoginBusy(false);
+        }
     };
 
     const handleStatusChange = async (caseId, nextStatus) => {
@@ -1946,14 +3200,60 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     };
 
     const handlePromoteAlert = async (alert) => {
+        const handlePromoteError = (error, fallbackMessage) => {
+            if (isCmtUnauthorized(error)) {
+                setAuthRequired(true);
+                setCmtAuthenticated(false);
+                setStreamStatus('auth required');
+                setMessage('CMT session expired or is unauthorized. Login to CMT, then retry Promote to Case.');
+                return;
+            }
+
+            setMessage(error.message || fallbackMessage);
+        };
+
+        const promoteLiveAlerts = async (alertList) => {
+            if (!(await requireCmtAuthentication())) {
+                return;
+            }
+
+            const submittedAtMs = Date.now();
+            const confirmedCases = [];
+            let latestRows = [];
+
+            setMessage(alertList.length > 1
+                ? `Promoting ${alertList.length} alerts to CMT database cases...`
+                : 'Promoting alert to a CMT database case...');
+
+            for (const item of alertList) {
+                const response = await promoteAlertToCase(item);
+                const persisted = await waitForPersistedPromotedCase(item, response, submittedAtMs);
+                latestRows = persisted.rows.length ? persisted.rows : latestRows;
+                if (persisted.case) {
+                    confirmedCases.push(persisted.case);
+                }
+            }
+
+            setCases(confirmedCases.reduce((rows, nextCase) => upsertCaseRow(rows, nextCase), latestRows));
+
+            if (!confirmedCases.length) {
+                setMessage('Promotion request completed, but no promoted case was returned from the database. Check the CMT backend case persistence and alert linking path.');
+            } else if (confirmedCases.length < alertList.length) {
+                setMessage(`Promoted ${confirmedCases.length}/${alertList.length} alerts. Some created cases were not returned from the database list.`);
+            } else {
+                setMessage(alertList.length > 1
+                    ? `${confirmedCases.length} alerts promoted and confirmed from the database.`
+                    : 'Alert promoted and confirmed from the database.');
+            }
+        };
+
         if (Array.isArray(alert)) {
             const alertList = alert.filter(Boolean);
             if (!alertList.length) return;
 
             try {
                 if (liveMode) {
-                    await Promise.all(alertList.map((item) => promoteAlertToCase(item.source_alert_id || item.alert_id || item.id)));
-                    await load();
+                    await promoteLiveAlerts(alertList);
                 } else {
                     const promotedCases = alertList.map((item, index) => {
                         const alertId = item.source_alert_id || item.alert_id || item.id;
@@ -1976,7 +3276,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                     setMessage(`${promotedCases.length} demo alerts promoted to local cases.`);
                 }
             } catch (error) {
-                setMessage(error.message || 'Bulk alert promotion failed.');
+                handlePromoteError(error, 'Bulk alert promotion failed.');
             }
             return;
         }
@@ -1984,8 +3284,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         const alertId = alert.source_alert_id || alert.alert_id || alert.id;
         try {
             if (liveMode) {
-                await promoteAlertToCase(alertId);
-                await load();
+                await promoteLiveAlerts([alert]);
             } else {
                 const nextCase = {
                     id: `case-demo-${Date.now()}`,
@@ -2005,7 +3304,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                 setMessage('Demo alert promoted to a local case.');
             }
         } catch (error) {
-            setMessage(error.message || 'Alert promotion failed.');
+            handlePromoteError(error, 'Alert promotion failed.');
         }
     };
 
@@ -2047,7 +3346,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const handleAddAlertLabel = async (alert, label) => {
         if (!label) return;
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? { ...item, labels: [...new Set([...(item.labels || []), label])] } : item));
+        const nextLabels = storeAlertAnnotationValues(alertId, 'labels', updateAlertAnnotationList(alert, 'labels', (values) => [...values, label]));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'labels', nextLabels));
         try {
             if (liveMode) await addAlertLabel(alertId, label);
         } catch (error) {
@@ -2057,10 +3357,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
     const handleRemoveAlertLabel = async (alert, label) => {
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? {
-            ...item,
-            labels: (item.labels || []).filter((value) => value !== label)
-        } : item));
+        const nextLabels = storeAlertAnnotationValues(alertId, 'labels', updateAlertAnnotationList(alert, 'labels', (values) => values.filter((value) => value !== label)));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'labels', nextLabels));
         try {
             if (liveMode) await deleteAlertLabel(alertId, label);
         } catch (error) {
@@ -2071,7 +3369,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const handleAddAlertIoc = async (alert, ioc, iocType = 'ip_address', file = null) => {
         if (!ioc) return;
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? { ...item, iocs: [...new Set([...(item.iocs || []), ioc])] } : item));
+        const nextIocs = storeAlertAnnotationValues(alertId, 'iocs', updateAlertAnnotationList(alert, 'iocs', (values) => [...values, ioc]));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'iocs', nextIocs));
         try {
             if (liveMode) await addAlertIoc(alertId, {
                 ioc,
@@ -2087,10 +3386,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
     const handleRemoveAlertIoc = async (alert, ioc) => {
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? {
-            ...item,
-            iocs: (item.iocs || []).filter((value) => value !== ioc)
-        } : item));
+        const nextIocs = storeAlertAnnotationValues(alertId, 'iocs', updateAlertAnnotationList(alert, 'iocs', (values) => values.filter((value) => value !== ioc)));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'iocs', nextIocs));
         try {
             if (liveMode) await deleteAlertIoc(alertId, { ioc });
         } catch (error) {
@@ -2101,7 +3398,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     const handleAddAlertAsset = async (alert, asset) => {
         if (!asset) return;
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? { ...item, assets: [...new Set([...(item.assets || []), asset])] } : item));
+        const nextAssets = storeAlertAnnotationValues(alertId, 'assets', updateAlertAnnotationList(alert, 'assets', (values) => [...values, asset]));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'assets', nextAssets));
         try {
             if (liveMode) await addAlertAsset(alertId, { asset });
         } catch (error) {
@@ -2111,10 +3409,8 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
     const handleRemoveAlertAsset = async (alert, asset) => {
         const alertId = alert.source_alert_id || alert.id;
-        setAlerts((current) => current.map((item) => (item.source_alert_id || item.id) === alertId ? {
-            ...item,
-            assets: (item.assets || []).filter((value) => value !== asset)
-        } : item));
+        const nextAssets = storeAlertAnnotationValues(alertId, 'assets', updateAlertAnnotationList(alert, 'assets', (values) => values.filter((value) => value !== asset)));
+        setAlerts((current) => applyAlertAnnotationValues(current, alertId, 'assets', nextAssets));
         try {
             if (liveMode) await deleteAlertAsset(alertId, { asset });
         } catch (error) {
@@ -2148,29 +3444,59 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
     const handleCreateManualCase = async (event) => {
         event.preventDefault();
-        const payload = {
-            ...manualCase,
-            summary: manualCase.title,
-            created_at: new Date().toISOString()
+        if (liveMode && !(await requireCmtAuthentication())) {
+            return false;
+        }
+
+        const now = new Date().toISOString();
+        const submittedAtMs = Date.now();
+        const apiPayload = {
+            title: manualCase.title.trim(),
+            summary: manualCase.title.trim(),
+            description: manualCase.description.trim(),
+            severity: manualCase.severity || 'high',
+            customer_code: manualCase.customer_code.trim()
         };
+        const optimisticPayload = {
+            ...apiPayload,
+            status: 'open',
+            owner: 'unassigned',
+            escalated: false,
+            archived: false,
+            created_at: now,
+            updated_at: now
+        };
+
         try {
             if (liveMode) {
-                await createManualCase(payload);
-                await load();
+                setMessage('Creating manual case in CMT database...');
+                const response = await createManualCase(apiPayload);
+                const persisted = await waitForPersistedManualCase(apiPayload, response, submittedAtMs);
+
+                if (!persisted.case) {
+                    setCases(persisted.rows);
+                    setMessage('Create request completed, but the new case was not returned from the database. Check the CMT backend /cases/manual persistence path.');
+                    return false;
+                }
+
+                setCases(persisted.rows);
+                setMessage('Manual case created and confirmed from the database.');
             } else {
-                setCases((current) => [{
-                    ...payload,
-                    id: `case-demo-${Date.now()}`,
-                    status: 'open',
-                    owner: 'unassigned',
-                    updated_at: new Date().toISOString(),
-                    sla_due_at: new Date(Date.now() + 60 * 60 * 1000).toISOString()
-                }, ...current]);
+                setCases((current) => upsertCaseRow(current, normalizeManualCase(optimisticPayload, `case-demo-${Date.now()}`)));
                 setMessage('Demo manual case created.');
             }
             setManualCase({ title: '', description: '', severity: 'high', customer_code: '' });
+            return true;
         } catch (error) {
-            setMessage(error.message || 'Manual case creation failed.');
+            if (isCmtUnauthorized(error)) {
+                setAuthRequired(true);
+                setCmtAuthenticated(false);
+                setStreamStatus('auth required');
+                setMessage('CMT session expired or is unauthorized. Login to CMT, then retry Create Case.');
+            } else {
+                setMessage(error.message || 'Manual case creation failed.');
+            }
+            return false;
         }
     };
 
@@ -2185,29 +3511,64 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         try {
             if (liveMode) {
                 await createCaseNote(caseId, body);
-                await loadCaseWorkspace(caseId);
+                await loadCaseWorkspace(caseId, true);
             }
         } catch (error) {
             setMessage(error.message || 'Note creation failed.');
         }
     };
 
-    const handleUploadEvidence = async (caseId, file) => {
-        if (!file) return;
-        const optimisticEvidence = {
-            evidence_id: `evidence-demo-${Date.now()}`,
-            filename: file.name,
-            content_type: file.type || 'application/octet-stream',
-            size: file.size,
-            uploaded_by: user?.username || 'analyst',
-            created_at: new Date().toISOString()
-        };
-        setCaseEvidence((current) => [optimisticEvidence, ...current]);
+    const handleUpdateNote = async (caseId, noteId, body) => {
+        const previousNotes = caseNotes;
+        setCaseNotes((current) => current.map((note) => itemId(note) === noteId ? {
+            ...note,
+            body,
+            updated_at: new Date().toISOString()
+        } : note));
+
         try {
             if (liveMode) {
-                await uploadCaseEvidence(caseId, file);
-                await loadCaseWorkspace(caseId);
+                await updateCaseNote(caseId, noteId, body);
+                await loadCaseWorkspace(caseId, true);
+            } else {
+                setMessage('Demo case note updated.');
             }
+        } catch (error) {
+            setCaseNotes(previousNotes);
+            setMessage(error.message || 'Note update failed.');
+        }
+    };
+
+    const handleDeleteNote = async (caseId, noteId) => {
+        if (!window.confirm(`Delete note ${noteId}?`)) return;
+        const previousNotes = caseNotes;
+        setCaseNotes((current) => current.filter((note) => itemId(note) !== noteId));
+
+        try {
+            if (liveMode) await deleteCaseNote(caseId, noteId);
+            else setMessage('Demo case note deleted.');
+        } catch (error) {
+            setCaseNotes(previousNotes);
+            setMessage(error.message || 'Note deletion failed.');
+        }
+    };
+
+    const handleUploadEvidence = async (caseId, file) => {
+        if (!file) return;
+        if (!liveMode) {
+            setCaseEvidence((current) => [{
+                evidence_id: `evidence-demo-${Date.now()}`,
+                filename: file.name,
+                content_type: file.type || 'application/octet-stream',
+                size: file.size,
+                uploaded_by: user?.username || 'analyst',
+                created_at: new Date().toISOString()
+            }, ...current]);
+            return;
+        }
+        try {
+            await uploadCaseEvidence(caseId, file);
+            await loadCaseWorkspace(caseId, true);
         } catch (error) {
             setMessage(error.message || 'Evidence upload failed.');
         }
@@ -2222,8 +3583,29 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
         }
     };
 
-    const handleLinkAlert = async (caseId, sourceAlertId) => {
-        const alertIds = sourceAlertId.split(',').map((value) => value.trim()).filter(Boolean);
+    const handleFetchAlerts = useCallback(async (query = '') => {
+        if (!liveMode) {
+            const q = query.toLowerCase().trim();
+            return demoAlerts.filter((a) =>
+                !q ||
+                (a.source_alert_id || '').toLowerCase().includes(q) ||
+                (a.rule_description || '').toLowerCase().includes(q) ||
+                (a.agent_name || '').toLowerCase().includes(q) ||
+                (a.description || '').toLowerCase().includes(q)
+            );
+        }
+        if (!(await requireCmtAuthentication())) return [];
+        try {
+            const result = await listFilteredAlerts({ title: query || undefined, page_size: 50, order: 'desc' });
+            const list = Array.isArray(result) ? result : (result?.alerts || result?.data || result?.items || []);
+            return list;
+        } catch {
+            return [];
+        }
+    }, [liveMode, requireCmtAuthentication]);
+
+    const handleLinkAlert = async (caseId, sourceAlertId, alertObj = null) => {
+        const alertIds = String(sourceAlertId).split(',').map((v) => v.trim()).filter(Boolean);
         if (!alertIds.length) return;
 
         setSelectedCase((current) => current && itemId(current) === caseId ? {
@@ -2233,9 +3615,12 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
         try {
             if (liveMode) {
-                if (alertIds.length > 1) await bulkLinkCaseAlerts(caseId, alertIds);
-                else await linkCaseAlert(caseId, alertIds[0]);
-                await loadCaseWorkspace(caseId);
+                if (alertIds.length === 1) {
+                    await linkCaseAlert(caseId, alertIds[0]);
+                } else {
+                    await bulkLinkCaseAlerts(caseId, alertIds);
+                }
+                await loadCaseWorkspace(caseId, true);
             } else {
                 setMessage('Demo alert linked to case.');
             }
@@ -2259,42 +3644,66 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     };
 
     const handleGenerateReport = async (caseId, templateId) => {
-        const optimisticReport = {
-            report_id: `report-demo-${Date.now()}`,
-            template_id: templateId,
-            format: templates.find((item) => (item.template_id || item.id) === templateId)?.format || 'pdf',
-            created_at: new Date().toISOString()
-        };
-        setCaseReports((current) => [optimisticReport, ...current]);
+        if (!liveMode) {
+            setCaseReports((current) => [{
+                report_id: `report-demo-${Date.now()}`,
+                template_id: templateId,
+                format: templates.find((item) => (item.template_id || item.id) === templateId)?.format || 'pdf',
+                created_at: new Date().toISOString()
+            }, ...current]);
+            setMessage('Demo report generated.');
+            return;
+        }
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(templateId || ''));
+        if (!isUuid) {
+            setMessage('This template was not saved to the backend. Delete it and create a new one.');
+            return;
+        }
         try {
-            if (liveMode) {
-                await generateCaseReport(caseId, { template_id: templateId });
-                await loadCaseWorkspace(caseId);
-            } else {
-                setMessage('Demo report generated.');
-            }
+            await generateCaseReport(caseId, { template_id: templateId });
+            await loadCaseWorkspace(caseId, true);
         } catch (error) {
             setMessage(error.message || 'Report generation failed.');
         }
     };
 
     const handleSaveTemplate = async (draft) => {
-        const templateId = draft.template_id || draft.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const payload = { ...draft, template_id: templateId };
-        const exists = templates.some((template) => (template.template_id || template.id) === templateId);
+        const name = (draft.name || '').trim();
+        const body = (draft.body || '').trim();
+        if (!name) { setMessage('Template name is required.'); return; }
+        if (!body) { setMessage('Template body is required — enter the report content or structure.'); return; }
 
-        setTemplates((current) => {
-            const nextTemplate = { ...payload, id: templateId, updated_at: new Date().toISOString() };
-            return exists
-                ? current.map((template) => (template.template_id || template.id) === templateId ? nextTemplate : template)
-                : [nextTemplate, ...current];
-        });
+        const templateId = draft.template_id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const payload = { ...draft, name, body, template_id: templateId };
+        const exists = templates.some((template) => (template.template_id || template.id) === templateId);
 
         try {
             if (liveMode) {
-                if (exists) await updateReportTemplate(templateId, payload);
-                else await createReportTemplate(payload);
+                if (exists) {
+                    setTemplates((current) => current.map((t) => (t.template_id || t.id) === templateId
+                        ? { ...payload, id: templateId, updated_at: new Date().toISOString() }
+                        : t));
+                    await updateReportTemplate(templateId, payload);
+                } else {
+                    // Backend assigns UUID — send only the required fields, no template_id
+                    const createBody = { name, body, format: draft.format || 'pdf', renderer: draft.renderer || 'react_pdf' };
+                    const created = await createReportTemplate(createBody);
+                    const saved = created?.template || created || {};
+                    const realId = saved.template_id || saved.id;
+                    if (realId) {
+                        setTemplates((current) => [{ ...saved, template_id: realId, id: realId }, ...current]);
+                    } else {
+                        const list = await listReportTemplates();
+                        setTemplates(asArray(list, 'templates'));
+                    }
+                }
             } else {
+                setTemplates((current) => {
+                    const next = { ...payload, id: templateId, updated_at: new Date().toISOString() };
+                    return exists
+                        ? current.map((t) => (t.template_id || t.id) === templateId ? next : t)
+                        : [next, ...current];
+                });
                 setMessage('Demo report template saved.');
             }
         } catch (error) {
@@ -2385,7 +3794,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
     }[view] || 'SOC case management for Wazuh SIEM workflows.';
 
     return (
-        <div className="mx-auto flex min-h-full w-full min-w-0 max-w-[1600px] flex-col gap-6">
+        <div className="flex min-h-full w-full min-w-0 flex-col gap-6">
             <div className="rounded-2xl border bg-card p-5">
             <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                 <div className="min-w-0">
@@ -2410,7 +3819,7 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                         {user?.username || 'unknown'} - {user?.role || 'viewer'}
                     </Badge>
                     {!liveMode && (
-                        <Button type="button" onClick={() => setLiveMode(true)}>
+                        <Button type="button" onClick={handleConnectLive}>
                             <Globe className="size-4" />
                             Connect Live CMT
                         </Button>
@@ -2435,14 +3844,17 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                 </Alert>
             )}
 
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-                <MetricCard icon={TicketCheck} label="Open Cases" value={stats.open} detail="Active investigations" tone="info" />
-                <MetricCard icon={Bell} label="New Alerts" value={stats.alerts} detail="Latest Wazuh alerts" tone="primary" />
-                <MetricCard icon={AlertTriangle} label="SLA Breached" value={stats.breached} detail="Past response deadline" tone="destructive" />
-                <MetricCard icon={Zap} label="Escalated" value={stats.escalated} detail="Management attention" tone="warning" />
-            </div>
+            {authRequired && (
+                <CmtLoginPanel
+                    value={loginDraft}
+                    onChange={setLoginDraft}
+                    onSubmit={handleCmtLogin}
+                    busy={loginBusy}
+                    backendReady={backendReady}
+                />
+            )}
 
-            {selectedCase && (
+            {selectedCase ? (
                 <CaseWorkspace
                     activeTab={activeCaseTab}
                     audit={caseAudit}
@@ -2456,24 +3868,29 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
                     onClose={() => {
                         setSelectedCase(null);
                         setSelectedCaseId('');
+                        sessionStorage.removeItem('cmt_open_case_id');
                     }}
                     onCreateNote={handleCreateNote}
+                    onDeleteNote={handleDeleteNote}
                     onDownloadEvidence={handleDownloadEvidence}
                     onDownloadReport={handleDownloadReport}
+                    onFetchAlerts={handleFetchAlerts}
                     onGenerateReport={handleGenerateReport}
                     onLinkAlert={handleLinkAlert}
                     onNotify={handleNotify}
                     onStatusChange={handleStatusChange}
                     onUnlinkAlert={handleUnlinkAlert}
+                    onUpdateNote={handleUpdateNote}
                     onUploadEvidence={handleUploadEvidence}
                 />
-            )}
-
-            <AlertActionDialog
-                action={alertAction}
-                onOpenChange={(open) => setAlertAction((current) => ({ ...current, open }))}
-                onSubmit={handleSubmitAlertAction}
-            />
+            ) : (
+                <>
+                    <div className="grid min-w-0 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+                        <MetricCard icon={TicketCheck} label="Open Cases" value={stats.open} detail="Active investigations" tone="info" />
+                        <MetricCard icon={Bell} label="New Alerts" value={stats.alerts} detail="Latest Wazuh alerts" tone="primary" />
+                        <MetricCard icon={AlertTriangle} label="SLA Breached" value={stats.breached} detail="Past response deadline" tone="destructive" />
+                        <MetricCard icon={Zap} label="Escalated" value={stats.escalated} detail="Management attention" tone="warning" />
+                    </div>
 
             {['overview', 'cases', 'sla', 'alerts'].includes(view) && (
                 <Toolbar
@@ -2568,21 +3985,47 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
             {['cases', 'sla'].includes(view) && (
                 <div className="flex flex-col gap-6">
                     {view === 'sla' && (
-                        <Alert variant="destructive">
-                            <AlertTriangle className="size-4" />
-                            <AlertTitle>SLA breach queue</AlertTitle>
-                            <AlertDescription>These cases are past response deadline or explicitly marked as breached.</AlertDescription>
-                        </Alert>
+                        <div className="flex items-center gap-4 rounded-xl border border-destructive/30 bg-destructive/5 px-5 py-4">
+                            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                                <AlertTriangle className="size-4" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-semibold text-destructive">SLA Breach Queue</p>
+                                <p className="text-xs text-muted-foreground">
+                                    Cases past their response deadline or explicitly flagged as breached.
+                                    {filteredCases.length > 0 && ` ${filteredCases.length} case${filteredCases.length !== 1 ? 's' : ''} require${filteredCases.length === 1 ? 's' : ''} immediate attention.`}
+                                </p>
+                            </div>
+                            <Badge variant="destructive" className="shrink-0 gap-1.5 px-3 py-1 text-xs font-semibold">
+                                <Clock3 className="size-3" />
+                                {filteredCases.length} overdue
+                            </Badge>
+                        </div>
                     )}
-                    <CaseTable
-                        rows={filteredCases}
-                        selectedCaseId={selectedCaseId}
-                        busyCaseId={busyCaseId}
-                        onOpen={loadCaseWorkspace}
-                        onStatusChange={handleStatusChange}
-                        onEscalate={handleEscalate}
-                        onArchive={handleArchive}
-                    />
+                    {view === 'cases' ? (
+                        <div className="grid min-w-0 gap-6 min-[1900px]:grid-cols-[minmax(0,1fr)_340px]">
+                            <CaseTable
+                                rows={filteredCases}
+                                selectedCaseId={selectedCaseId}
+                                busyCaseId={busyCaseId}
+                                onOpen={loadCaseWorkspace}
+                                onStatusChange={handleStatusChange}
+                                onEscalate={handleEscalate}
+                                onArchive={handleArchive}
+                            />
+                            <ManualCasePanel value={manualCase} onChange={setManualCase} onSubmit={handleCreateManualCase} disabled={loading} />
+                        </div>
+                    ) : (
+                        <CaseTable
+                            rows={filteredCases}
+                            selectedCaseId={selectedCaseId}
+                            busyCaseId={busyCaseId}
+                            onOpen={loadCaseWorkspace}
+                            onStatusChange={handleStatusChange}
+                            onEscalate={handleEscalate}
+                            onArchive={handleArchive}
+                        />
+                    )}
                     {user?.role === 'admin' && selectedCaseId && (
                         <Card>
                             <CardHeader>
@@ -2620,8 +4063,18 @@ export function CmtDashboard({ view = 'overview', moduleId = 'siem' }) {
 
             {view === 'webhooks' && <WebhooksPage currentUser={user} webhooks={webhooks} onUpdateWebhook={handleUpdateWebhook} />}
 
+            {view === 'agents' && <AgentsPage />}
+                </>
+            )}
+
+            <AlertActionDialog
+                action={alertAction}
+                onOpenChange={(open) => setAlertAction((current) => ({ ...current, open }))}
+                onSubmit={handleSubmitAlertAction}
+            />
+
             <div className="rounded-xl border bg-card p-4 text-xs text-muted-foreground">
-                API base: <span className="font-mono text-foreground">{CMT_API_BASE}</span>. Live mode uses HttpOnly/session-cookie compatible requests plus bearer token exchange when available.
+                API base: <span className="font-mono text-foreground">{CMT_API_BASE || 'same-origin root'}</span>. Live mode uses HttpOnly/session-cookie compatible requests plus bearer token exchange when available.
             </div>
         </div>
     );
